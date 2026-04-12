@@ -1,3 +1,4 @@
+import { useRef, useCallback } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
 import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
@@ -10,6 +11,7 @@ interface MessageBubbleProps {
 }
 
 const NUDGE_EMOJI = "\u{1F449}"
+const LONG_PRESS_MS = 500
 
 export function MessageBubble({
   message,
@@ -17,6 +19,36 @@ export function MessageBubble({
   onReply,
   onScrollToMessage,
 }: MessageBubbleProps) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
+  const didLongPress = useRef(false)
+
+  const canReply = !!onReply && !message.tempId && !message.is_deleted
+
+  const handleTouchStart = useCallback(() => {
+    if (!canReply) return
+    didLongPress.current = false
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true
+      onReply?.(message)
+      // Haptic feedback if available
+      if (navigator.vibrate) navigator.vibrate(30)
+    }, LONG_PRESS_MS)
+  }, [canReply, message, onReply])
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
   const isNudge = message.content === NUDGE_EMOJI && !message.is_deleted
 
   if (isNudge) {
@@ -47,8 +79,8 @@ export function MessageBubble({
       id={`msg-${message.id}`}
       className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
     >
-      {/* Reply button — left side for own messages */}
-      {isMine && onReply && !message.tempId && (
+      {/* Reply button — left side for own messages (desktop hover) */}
+      {isMine && canReply && (
         <button
           onClick={() => onReply(message)}
           className="mr-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
@@ -57,7 +89,12 @@ export function MessageBubble({
         </button>
       )}
 
-      <div className="flex max-w-[85%] flex-col gap-0.5 sm:max-w-[75%]">
+      <div
+        className="flex max-w-[85%] flex-col gap-0.5 select-none sm:max-w-[75%]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+      >
         {/* Reply-to preview */}
         {message.reply_to_content && (
           <button
@@ -100,8 +137,8 @@ export function MessageBubble({
         </div>
       </div>
 
-      {/* Reply button — right side for other's messages */}
-      {!isMine && onReply && !message.tempId && (
+      {/* Reply button — right side for other's messages (desktop hover) */}
+      {!isMine && canReply && (
         <button
           onClick={() => onReply(message)}
           className="ml-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
