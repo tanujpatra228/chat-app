@@ -12,7 +12,7 @@ export function UserSearch({ onSelect }: UserSearchProps) {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
