@@ -1,15 +1,22 @@
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check } from "lucide-react"
+import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
 
 interface MessageBubbleProps {
   message: Message
   isMine: boolean
+  onReply?: (message: Message) => void
+  onScrollToMessage?: (messageId: string) => void
 }
 
 const NUDGE_EMOJI = "\u{1F449}"
 
-export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isMine,
+  onReply,
+  onScrollToMessage,
+}: MessageBubbleProps) {
   const isNudge = message.content === NUDGE_EMOJI && !message.is_deleted
 
   if (isNudge) {
@@ -36,17 +43,32 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
   }
 
   return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}>
+    <div
+      id={`msg-${message.id}`}
+      className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
+    >
+      {/* Reply button — left side for own messages */}
+      {isMine && onReply && !message.tempId && (
+        <button
+          onClick={() => onReply(message)}
+          className="mr-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
+        >
+          <Reply className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
+
       <div className="flex max-w-[85%] flex-col gap-0.5 sm:max-w-[75%]">
+        {/* Reply-to preview */}
         {message.reply_to_content && (
-          <div
-            className={`rounded-lg px-3 py-1.5 text-xs ${isMine ? "bg-primary/20" : "bg-muted"}`}
+          <button
+            onClick={() => message.reply_to_id && onScrollToMessage?.(message.reply_to_id)}
+            className={`rounded-lg px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80 ${isMine ? "bg-primary/20" : "bg-muted"}`}
           >
             <span className="text-muted-foreground font-medium">
               {message.reply_to_sender_username}
             </span>
             <p className="truncate">{message.reply_to_content}</p>
-          </div>
+          </button>
         )}
         <div
           className={`rounded-2xl px-3 py-2 text-sm md:px-4 ${
@@ -66,14 +88,27 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
           {isMine && message.status === "sending" && (
             <Clock className="text-muted-foreground h-3 w-3" />
           )}
-          {isMine && message.status === "sent" && (
+          {isMine && message.status === "sent" && !message.readByOther && (
             <Check className="text-muted-foreground h-3 w-3" />
+          )}
+          {isMine && message.readByOther && (
+            <CheckCheck className="h-3 w-3 text-blue-500" />
           )}
           {isMine && message.status === "failed" && (
             <AlertCircle className="h-3 w-3 text-destructive" />
           )}
         </div>
       </div>
+
+      {/* Reply button — right side for other's messages */}
+      {!isMine && onReply && !message.tempId && (
+        <button
+          onClick={() => onReply(message)}
+          className="ml-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
+        >
+          <Reply className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
     </div>
   )
 }

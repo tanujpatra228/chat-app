@@ -47,4 +47,5 @@ export interface Message {
   // Client-side only
   status?: "sending" | "sent" | "failed"
   tempId?: string
+  readByOther?: boolean
 }

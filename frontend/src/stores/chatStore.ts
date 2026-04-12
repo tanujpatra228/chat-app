@@ -1,44 +1,58 @@
 import { create } from "zustand"
 import type { Conversation, Message } from "@/lib/types"
 
+interface TypingUser {
+  userId: string
+  username: string
+  expiresAt: number
+}
+
+interface ReplyTo {
+  messageId: string
+  content: string
+  senderUsername: string
+}
+
 interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null
   messages: Record<string, Message[]>
+  typingUsers: Record<string, TypingUser[]>
+  replyTo: ReplyTo | null
+  lastReadMessageIds: Record<string, string>
 
   setConversations: (conversations: Conversation[]) => void
   setActiveConversation: (id: string | null) => void
   addMessage: (conversationId: string, message: Message) => void
-  replaceMessage: (
-    conversationId: string,
-    tempId: string,
-    message: Message
-  ) => void
+  replaceMessage: (conversationId: string, tempId: string, message: Message) => void
   markMessageFailed: (conversationId: string, tempId: string) => void
   setMessages: (conversationId: string, messages: Message[]) => void
   prependMessages: (conversationId: string, messages: Message[]) => void
   deleteMessage: (conversationId: string, messageId: string) => void
-  updateConversationLastMessage: (
-    conversationId: string,
-    message: Message
-  ) => void
+  updateConversationLastMessage: (conversationId: string, message: Message) => void
   decrementUnread: (conversationId: string) => void
   incrementUnread: (conversationId: string) => void
-  updateUserOnlineStatus: (
-    userId: string,
-    isOnline: boolean,
-    lastSeen?: string
-  ) => void
+  updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeen?: string) => void
+  setTypingUser: (conversationId: string, userId: string, username: string) => void
+  clearTypingUser: (conversationId: string, userId: string) => void
+  setReplyTo: (replyTo: ReplyTo | null) => void
+  setLastReadMessageId: (conversationId: string, userId: string, messageId: string) => void
+  markMessagesRead: (conversationId: string, upToMessageId: string) => void
 }
+
+const TYPING_EXPIRY_MS = 4000
 
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
   activeConversationId: null,
   messages: {},
+  typingUsers: {},
+  replyTo: null,
+  lastReadMessageIds: {},
 
   setConversations: (conversations) => set({ conversations }),
 
-  setActiveConversation: (id) => set({ activeConversationId: id }),
+  setActiveConversation: (id) => set({ activeConversationId: id, replyTo: null }),
 
   addMessage: (conversationId, message) =>
     set((state) => {
@@ -158,4 +172,57 @@ export const useChatStore = create<ChatState>((set) => ({
           : c
       ),
     })),
+
+  setTypingUser: (conversationId, userId, username) =>
+    set((state) => {
+      const existing = state.typingUsers[conversationId] || []
+      const filtered = existing.filter((t) => t.userId !== userId)
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [conversationId]: [
+            ...filtered,
+            { userId, username, expiresAt: Date.now() + TYPING_EXPIRY_MS },
+          ],
+        },
+      }
+    }),
+
+  clearTypingUser: (conversationId, userId) =>
+    set((state) => {
+      const existing = state.typingUsers[conversationId] || []
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [conversationId]: existing.filter((t) => t.userId !== userId),
+        },
+      }
+    }),
+
+  setReplyTo: (replyTo) => set({ replyTo }),
+
+  setLastReadMessageId: (conversationId, _userId, messageId) =>
+    set((state) => ({
+      lastReadMessageIds: {
+        ...state.lastReadMessageIds,
+        [conversationId]: messageId,
+      },
+    })),
+
+  markMessagesRead: (conversationId, upToMessageId) =>
+    set((state) => {
+      const msgs = state.messages[conversationId] || []
+      let found = false
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: msgs.map((m) => {
+            if (m.id === upToMessageId) found = true
+            if (!found) return { ...m, readByOther: true }
+            if (m.id === upToMessageId) return { ...m, readByOther: true }
+            return m
+          }),
+        },
+      }
+    }),
 }))

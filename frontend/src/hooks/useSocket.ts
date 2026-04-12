@@ -13,6 +13,9 @@ export function useSocket() {
     updateConversationLastMessage,
     incrementUnread,
     updateUserOnlineStatus,
+    setTypingUser,
+    clearTypingUser,
+    markMessagesRead,
   } = useChatStore()
 
   useEffect(() => {
@@ -30,6 +33,8 @@ export function useSocket() {
     }) => {
       addMessage(conversationId, { ...message, status: "sent" })
       updateConversationLastMessage(conversationId, message)
+      // Clear typing when a message arrives from that user
+      clearTypingUser(conversationId, message.sender_id)
 
       if (conversationId !== activeConversationId) {
         incrementUnread(conversationId)
@@ -60,16 +65,55 @@ export function useSocket() {
       updateUserOnlineStatus(userId, false, lastSeen)
     }
 
+    const handleUserTyping = ({
+      conversationId,
+      userId,
+      username,
+    }: {
+      conversationId: string
+      userId: string
+      username: string
+    }) => {
+      setTypingUser(conversationId, userId, username)
+    }
+
+    const handleUserStoppedTyping = ({
+      conversationId,
+      userId,
+    }: {
+      conversationId: string
+      userId: string
+    }) => {
+      clearTypingUser(conversationId, userId)
+    }
+
+    const handleMessagesRead = ({
+      conversationId,
+      lastReadMessageId,
+    }: {
+      conversationId: string
+      userId: string
+      lastReadMessageId: string
+    }) => {
+      markMessagesRead(conversationId, lastReadMessageId)
+    }
+
     socket.on("new_message", handleNewMessage)
     socket.on("message_deleted", handleMessageDeleted)
     socket.on("user_online", handleUserOnline)
     socket.on("user_offline", handleUserOffline)
+    socket.on("user_typing", handleUserTyping)
+    socket.on("user_stopped_typing", handleUserStoppedTyping)
+    socket.on("messages_read", handleMessagesRead)
 
     return () => {
       socket.off("new_message", handleNewMessage)
       socket.off("message_deleted", handleMessageDeleted)
       socket.off("user_online", handleUserOnline)
       socket.off("user_offline", handleUserOffline)
+      socket.off("user_typing", handleUserTyping)
+      socket.off("user_stopped_typing", handleUserStoppedTyping)
+      socket.off("messages_read", handleMessagesRead)
     }
   }, [
     isAuthenticated,
@@ -79,5 +123,8 @@ export function useSocket() {
     updateConversationLastMessage,
     incrementUnread,
     updateUserOnlineStatus,
+    setTypingUser,
+    clearTypingUser,
+    markMessagesRead,
   ])
 }
