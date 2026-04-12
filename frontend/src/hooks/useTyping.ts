@@ -1,6 +1,7 @@
-import { useCallback, useRef, useEffect } from "react"
+import { useCallback, useRef, useEffect, useMemo } from "react"
 import { getSocket } from "@/lib/socket"
 import { useChatStore } from "@/stores/chatStore"
+import { useShallow } from "zustand/shallow"
 
 const TYPING_STOP_DELAY_MS = 3000
 const TYPING_CLEANUP_INTERVAL_MS = 2000
@@ -9,8 +10,10 @@ export function useTyping(conversationId: string | null) {
   const stopTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
   const isTypingRef = useRef(false)
 
-  const typingUsers = useChatStore((s) =>
-    conversationId ? s.typingUsers[conversationId] || [] : []
+  const typingUsers = useChatStore(
+    useShallow((s) =>
+      conversationId ? s.typingUsers[conversationId] || [] : []
+    )
   )
   const clearTypingUser = useChatStore((s) => s.clearTypingUser)
 
@@ -44,7 +47,7 @@ export function useTyping(conversationId: string | null) {
 
   // Cleanup expired typing indicators
   useEffect(() => {
-    if (!conversationId) return
+    if (!conversationId || typingUsers.length === 0) return
 
     const interval = setInterval(() => {
       const now = Date.now()
@@ -72,7 +75,10 @@ export function useTyping(conversationId: string | null) {
     }
   }, [conversationId])
 
-  const activeTypingUsers = typingUsers.filter((t) => t.expiresAt > Date.now())
+  const activeTypingUsers = useMemo(
+    () => typingUsers.filter((t) => t.expiresAt > Date.now()),
+    [typingUsers]
+  )
 
   return { emitTypingStart, stopTyping, typingUsers: activeTypingUsers }
 }
