@@ -1,7 +1,8 @@
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
 import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
+import { ImageLightbox } from "./ImageLightbox"
 
 interface MessageBubbleProps {
   message: Message
@@ -21,6 +22,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const didLongPress = useRef(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const canReply = !!onReply && !message.tempId && !message.is_deleted
 
@@ -108,19 +110,26 @@ export function MessageBubble({
           </button>
         )}
         {message.message_type === "image" && message.image_url ? (
-          <a
-            href={message.image_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overflow-hidden rounded-2xl"
-          >
-            <img
-              src={message.image_url}
-              alt="Shared image"
-              className="max-h-64 w-auto rounded-2xl object-cover"
-              loading="lazy"
-            />
-          </a>
+          <>
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              className="block cursor-zoom-in overflow-hidden rounded-2xl"
+            >
+              <img
+                src={message.image_url}
+                alt="Shared image"
+                className="max-h-64 w-auto rounded-2xl object-cover"
+                loading="lazy"
+              />
+            </button>
+            {lightboxOpen && (
+              <ImageLightbox
+                src={message.image_url}
+                onClose={() => setLightboxOpen(false)}
+              />
+            )}
+          </>
         ) : (
           <div
             className={`rounded-2xl px-3 py-2 text-sm md:px-4 ${

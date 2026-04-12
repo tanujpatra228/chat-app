@@ -35,6 +35,9 @@ interface MessageInputProps {
   onSend: (content: string, replyToId?: string) => void
   onTyping?: () => void
   onStopTyping?: () => void
+  onUploadStart?: () => void
+  onUploadProgress?: (percent: number) => void
+  onUploadEnd?: () => void
   disabled?: boolean
 }
 
@@ -43,6 +46,9 @@ export function MessageInput({
   onSend,
   onTyping,
   onStopTyping,
+  onUploadStart,
+  onUploadProgress,
+  onUploadEnd,
   disabled,
 }: MessageInputProps) {
   const [content, setContent] = useState("")
@@ -100,17 +106,27 @@ export function MessageInput({
     e.target.value = ""
 
     setIsUploading(true)
+    onUploadStart?.()
     try {
       const formData = new FormData()
       formData.append("image", file)
 
       await api.post(`/conversations/${conversationId}/images`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            )
+            onUploadProgress?.(percent)
+          }
+        },
       })
     } catch (err) {
       console.error("Image upload failed:", err)
     } finally {
       setIsUploading(false)
+      onUploadEnd?.()
     }
   }
 

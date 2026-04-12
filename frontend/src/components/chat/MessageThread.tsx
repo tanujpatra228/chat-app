@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, ImageUp } from "lucide-react"
 import { ChatHeader } from "./ChatHeader"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
@@ -28,6 +28,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const prevMessageCountRef = useRef(0)
   const lastTapRef = useRef(0)
   const shouldScrollRef = useRef(true)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -162,7 +163,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
           </div>
         )}
 
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && messages.length === 0 && uploadProgress === null && (
           <div className="flex flex-col items-center justify-center py-16">
             <p className="text-muted-foreground text-sm">
               No messages yet. Say hello!
@@ -204,6 +205,26 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
             })}
           </div>
         )}
+
+        {/* Upload progress bubble */}
+        {uploadProgress !== null && (
+          <div className="flex justify-end px-3 py-1 md:px-4">
+            <div className="flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5">
+              <ImageUp className="h-4 w-4 text-primary-foreground" />
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-primary-foreground">
+                  Uploading... {uploadProgress}%
+                </span>
+                <div className="h-1 w-24 overflow-hidden rounded-full bg-primary-foreground/30">
+                  <div
+                    className="h-full rounded-full bg-primary-foreground transition-all duration-200"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <MessageInput
@@ -211,6 +232,9 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         onSend={sendMessage}
         onTyping={emitTypingStart}
         onStopTyping={stopTyping}
+        onUploadStart={() => setUploadProgress(0)}
+        onUploadProgress={(p) => setUploadProgress(p)}
+        onUploadEnd={() => setUploadProgress(null)}
       />
     </div>
   )
