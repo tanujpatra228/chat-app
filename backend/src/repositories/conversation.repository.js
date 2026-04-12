@@ -58,7 +58,8 @@ async function getUserConversations(userId) {
          SELECT COUNT(*)::int FROM messages msg
          WHERE msg.conversation_id = c.id
            AND msg.created_at > COALESCE(
-             (SELECT cp_inner.last_read_message_id FROM conversation_participants cp_inner
+             (SELECT rm.created_at FROM conversation_participants cp_inner
+              JOIN messages rm ON rm.id = cp_inner.last_read_message_id
               WHERE cp_inner.conversation_id = c.id AND cp_inner.user_id = $1),
              '1970-01-01'::timestamptz
            )
