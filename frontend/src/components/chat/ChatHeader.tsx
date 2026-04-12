@@ -46,14 +46,7 @@ export function ChatHeader({ conversation, onBack, typingUsers = [] }: ChatHeade
         size="sm"
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <h2 className="truncate text-sm font-semibold">{name}</h2>
-          {conversation.vanishing_mode && (
-            <span className="text-amber-500 text-[10px]" title="Vanishing messages on">
-              &#9760;
-            </span>
-          )}
-        </div>
+        <h2 className="truncate text-sm font-semibold">{name}</h2>
         <p className={`truncate text-xs ${isTyping ? "text-primary font-medium" : "text-muted-foreground"}`}>
           {statusText}
         </p>
