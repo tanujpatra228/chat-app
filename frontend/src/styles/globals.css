@@ -140,7 +140,12 @@
 }
 
 .animate-nudge {
-  animation: nudge 0.6s ease-out 1;
+  animation: nudge 0.6s ease-out 1 both;
+}
+
+.animate-nudge-reverse {
+  transform: scaleX(-1);
+  animation: nudge-reverse 0.6s ease-out 1 both;
 }
 
 @keyframes nudge-reverse {
@@ -153,8 +158,4 @@
   60%  { transform: scaleX(-1) translateX(2px); }
   70%  { transform: scaleX(-1) translateX(0); }
   100% { transform: scaleX(-1) translateX(0); }
-}
-
-.animate-nudge-reverse {
-  animation: nudge-reverse 0.6s ease-out 1;
 }
