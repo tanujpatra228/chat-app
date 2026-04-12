@@ -107,15 +107,31 @@ export function MessageBubble({
             <p className="truncate">{message.reply_to_content}</p>
           </button>
         )}
-        <div
-          className={`rounded-2xl px-3 py-2 text-sm md:px-4 ${
-            isMine
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-foreground"
-          }`}
-        >
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
-        </div>
+        {message.message_type === "image" && message.image_url ? (
+          <a
+            href={message.image_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block overflow-hidden rounded-2xl"
+          >
+            <img
+              src={message.image_url}
+              alt="Shared image"
+              className="max-h-64 w-auto rounded-2xl object-cover"
+              loading="lazy"
+            />
+          </a>
+        ) : (
+          <div
+            className={`rounded-2xl px-3 py-2 text-sm md:px-4 ${
+              isMine
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground"
+            }`}
+          >
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          </div>
+        )}
         <div
           className={`flex items-center gap-1 px-1 ${isMine ? "justify-end" : "justify-start"}`}
         >

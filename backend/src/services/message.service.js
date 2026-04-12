@@ -1,5 +1,6 @@
 const messageRepo = require("../repositories/message.repository");
 const conversationRepo = require("../repositories/conversation.repository");
+const uploadService = require("./upload.service");
 const ApiError = require("../utils/ApiError");
 
 async function sendMessage({ conversationId, senderId, content, replyToId }) {
@@ -67,7 +68,46 @@ async function deleteMessage(messageId, userId) {
     throw new ApiError(403, "Can only delete your own messages");
   }
 
+  // Delete Cloudinary image if this is a media message
+  if (message.image_public_id) {
+    await uploadService.deleteImage(message.image_public_id);
+  }
+
   return messageRepo.softDelete(messageId);
+}
+
+async function sendImageMessage({ conversationId, senderId, fileBuffer }) {
+  const isParticipant = await conversationRepo.isParticipant(
+    conversationId,
+    senderId
+  );
+  if (!isParticipant) {
+    throw new ApiError(403, "Not a participant of this conversation");
+  }
+
+  const { url, publicId } = await uploadService.uploadImage(
+    fileBuffer,
+    conversationId
+  );
+
+  const conversation = await conversationRepo.findById(conversationId);
+  let expiresAt = null;
+  if (conversation?.vanishing_mode && conversation.vanishing_duration_hours) {
+    expiresAt = new Date(
+      Date.now() + conversation.vanishing_duration_hours * 3600000
+    ).toISOString();
+  }
+
+  return messageRepo.createMessage({
+    conversationId,
+    senderId,
+    content: "",
+    replyToId: null,
+    expiresAt,
+    messageType: "image",
+    imageUrl: url,
+    imagePublicId: publicId,
+  });
 }
 
 async function searchMessages(query, userId) {
@@ -77,4 +117,4 @@ async function searchMessages(query, userId) {
   return messageRepo.searchMessages(query.trim(), userId);
 }
 
-module.exports = { sendMessage, getMessages, deleteMessage, searchMessages };
+module.exports = { sendMessage, sendImageMessage, getMessages, deleteMessage, searchMessages };

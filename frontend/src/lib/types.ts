@@ -46,6 +46,9 @@ export interface Message {
   reply_to_content?: string | null
   reply_to_sender_id?: string | null
   reply_to_sender_username?: string | null
+  message_type?: "text" | "image"
+  image_url?: string | null
+  image_public_id?: string | null
   expires_at?: string | null
   // Client-side only
   status?: "sending" | "sent" | "failed"

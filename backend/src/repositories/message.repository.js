@@ -13,22 +13,25 @@ function decryptMessage(message) {
   return message;
 }
 
-async function createMessage({ conversationId, senderId, content, replyToId, expiresAt }) {
-  const encrypted = encrypt(content);
+async function createMessage({ conversationId, senderId, content, replyToId, expiresAt, messageType, imageUrl, imagePublicId }) {
+  const encrypted = content ? encrypt(content) : { content: null, iv: null, authTag: null };
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, content, encrypted_content, iv, auth_tag, reply_to_id, expires_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO messages (conversation_id, sender_id, content, encrypted_content, iv, auth_tag, reply_to_id, expires_at, message_type, image_url, image_public_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       conversationId,
       senderId,
-      isEnabled() ? "" : content,
-      isEnabled() ? encrypted.content : null,
+      content && isEnabled() ? "" : (content || ""),
+      content && isEnabled() ? encrypted.content : null,
       encrypted.iv,
       encrypted.authTag,
       replyToId || null,
       expiresAt || null,
+      messageType || "text",
+      imageUrl || null,
+      imagePublicId || null,
     ]
   );
 
@@ -109,11 +112,20 @@ async function findById(messageId) {
 
 async function softDelete(messageId) {
   const { rows } = await pool.query(
-    `UPDATE messages SET is_deleted = true, content = '', encrypted_content = NULL, iv = NULL, auth_tag = NULL, updated_at = NOW()
+    `UPDATE messages SET is_deleted = true, content = '', encrypted_content = NULL, iv = NULL, auth_tag = NULL, image_url = NULL, image_public_id = NULL, updated_at = NOW()
      WHERE id = $1 RETURNING *`,
     [messageId]
   );
   return rows[0];
+}
+
+async function getExpiredImagePublicIds() {
+  const { rows } = await pool.query(
+    `SELECT image_public_id FROM messages
+     WHERE expires_at IS NOT NULL AND expires_at < NOW()
+       AND image_public_id IS NOT NULL`
+  );
+  return rows.map((r) => r.image_public_id);
 }
 
 async function deleteExpiredMessages() {
@@ -163,6 +175,7 @@ module.exports = {
   getMessages,
   findById,
   softDelete,
+  getExpiredImagePublicIds,
   deleteExpiredMessages,
   searchMessages,
 };

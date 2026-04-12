@@ -47,6 +47,7 @@ app.use(errorHandler);
 
 // Initialize Socket.IO
 const io = initializeSocket(server);
+app.set("io", io);
 
 // Start background jobs
 startCleanupJob();
