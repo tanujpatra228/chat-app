@@ -77,22 +77,30 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     return () => container.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Mark messages as read when viewing the conversation
+  // Clear unread count immediately when opening a conversation
+  useEffect(() => {
+    decrementUnread(conversation.id)
+  }, [conversation.id, decrementUnread])
+
+  // Emit mark_read for the latest message from the other user
   useEffect(() => {
     if (!messages.length || !user) return
 
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage.sender_id === user.id || lastMessage.tempId) return
+    // Find the last message from the other user
+    const lastOtherMessage = [...messages]
+      .reverse()
+      .find((m) => m.sender_id !== user.id && !m.tempId)
+
+    if (!lastOtherMessage) return
 
     const socket = getSocket()
     if (socket) {
       socket.emit("mark_read", {
         conversationId: conversation.id,
-        messageId: lastMessage.id,
+        messageId: lastOtherMessage.id,
       })
     }
-    decrementUnread(conversation.id)
-  }, [messages, user, conversation.id, decrementUnread])
+  }, [messages, user, conversation.id])
 
   const handleReply = useCallback(
     (message: Message) => {

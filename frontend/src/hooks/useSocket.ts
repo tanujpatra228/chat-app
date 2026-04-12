@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { getSocket } from "@/lib/socket"
 import { useChatStore } from "@/stores/chatStore"
 import { useAuthStore } from "@/stores/authStore"
@@ -19,6 +19,10 @@ export function useSocket() {
     updateVanishingMode,
   } = useChatStore()
 
+  // Use ref to avoid stale closure for activeConversationId
+  const activeConversationIdRef = useRef(activeConversationId)
+  activeConversationIdRef.current = activeConversationId
+
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -37,7 +41,7 @@ export function useSocket() {
       // Clear typing when a message arrives from that user
       clearTypingUser(conversationId, message.sender_id)
 
-      if (conversationId !== activeConversationId) {
+      if (conversationId !== activeConversationIdRef.current) {
         incrementUnread(conversationId)
       }
     }
@@ -133,7 +137,6 @@ export function useSocket() {
     }
   }, [
     isAuthenticated,
-    activeConversationId,
     addMessage,
     deleteMessage,
     updateConversationLastMessage,
