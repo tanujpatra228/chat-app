@@ -23,7 +23,7 @@ export function MessageBubble({
     return (
       <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-1 md:px-4`}>
         <div className="flex flex-col items-center gap-0.5">
-          <span className="animate-nudge text-4xl">{NUDGE_EMOJI}</span>
+          <span className={`text-4xl ${isMine ? "animate-nudge-reverse -scale-x-100" : "animate-nudge"}`}>{NUDGE_EMOJI}</span>
           <span className="text-muted-foreground text-[10px]">
             {formatMessageTime(message.created_at)}
           </span>

@@ -142,3 +142,19 @@
 .animate-nudge {
   animation: nudge 0.6s ease-out 1;
 }
+
+@keyframes nudge-reverse {
+  0%   { transform: scaleX(-1) translateX(0); }
+  10%  { transform: scaleX(-1) translateX(-12px); }
+  20%  { transform: scaleX(-1) translateX(10px); }
+  30%  { transform: scaleX(-1) translateX(-8px); }
+  40%  { transform: scaleX(-1) translateX(6px); }
+  50%  { transform: scaleX(-1) translateX(-4px); }
+  60%  { transform: scaleX(-1) translateX(2px); }
+  70%  { transform: scaleX(-1) translateX(0); }
+  100% { transform: scaleX(-1) translateX(0); }
+}
+
+.animate-nudge-reverse {
+  animation: nudge-reverse 0.6s ease-out 1;
+}
