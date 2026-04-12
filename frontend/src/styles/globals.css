@@ -126,3 +126,19 @@
     @apply bg-background text-foreground;
     }
 }
+
+@keyframes nudge {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(12px); }
+  20%  { transform: translateX(-10px); }
+  30%  { transform: translateX(8px); }
+  40%  { transform: translateX(-6px); }
+  50%  { transform: translateX(4px); }
+  60%  { transform: translateX(-2px); }
+  70%  { transform: translateX(0); }
+  100% { transform: translateX(0); }
+}
+
+.animate-nudge {
+  animation: nudge 0.6s ease-out 1;
+}
