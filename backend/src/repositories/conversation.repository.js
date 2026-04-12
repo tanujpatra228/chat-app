@@ -17,7 +17,9 @@ async function createConversation(userOneId, userTwoId) {
     await client.query("BEGIN");
 
     const { rows: convRows } = await client.query(
-      `INSERT INTO conversations DEFAULT VALUES RETURNING id, created_at, updated_at`
+      `INSERT INTO conversations (vanishing_mode, vanishing_duration_hours)
+       VALUES (true, 12)
+       RETURNING id, vanishing_mode, vanishing_duration_hours, created_at, updated_at`
     );
     const conversation = convRows[0];
 

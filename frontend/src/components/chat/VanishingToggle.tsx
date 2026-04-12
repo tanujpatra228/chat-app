@@ -15,6 +15,7 @@ const DURATION_OPTIONS = [
   { label: "Off", value: 0 },
   { label: "1 hour", value: 1 },
   { label: "6 hours", value: 6 },
+  { label: "12 hours", value: 12 },
   { label: "24 hours", value: 24 },
   { label: "7 days", value: 168 },
 ]

@@ -43,7 +43,7 @@ async function verifyParticipant(conversationId, userId) {
   }
 }
 
-const VALID_DURATIONS = [1, 6, 24, 168];
+const VALID_DURATIONS = [1, 6, 12, 24, 168];
 
 async function toggleVanishingMode(conversationId, userId, vanishingMode, durationHours) {
   await verifyParticipant(conversationId, userId);
