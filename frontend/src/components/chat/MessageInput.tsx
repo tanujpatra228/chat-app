@@ -76,7 +76,10 @@ export function MessageInput({
   )
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // On mobile (touch devices), Enter adds a newline; send via button only
+    // On desktop, Enter sends and Shift+Enter adds a newline
+    const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0
+    if (e.key === "Enter" && !e.shiftKey && !isMobile) {
       e.preventDefault()
       handleSubmit(e)
     }
