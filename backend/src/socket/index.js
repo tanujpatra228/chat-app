@@ -6,6 +6,7 @@ const userRepo = require("../repositories/user.repository");
 const registerMessageHandlers = require("./handlers/message.handler");
 const registerTypingHandlers = require("./handlers/typing.handler");
 const registerReadHandlers = require("./handlers/read.handler");
+const registerVanishingHandlers = require("./handlers/vanishing.handler");
 
 function initializeSocket(httpServer) {
   const io = new Server(httpServer, {
@@ -55,6 +56,7 @@ function initializeSocket(httpServer) {
     registerMessageHandlers(io, socket);
     registerTypingHandlers(io, socket);
     registerReadHandlers(io, socket);
+    registerVanishingHandlers(io, socket);
 
     // Handle joining a new conversation room (when a new conversation is created via REST)
     socket.on("join_conversation", (conversationId) => {

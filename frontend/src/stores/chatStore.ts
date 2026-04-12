@@ -38,6 +38,7 @@ interface ChatState {
   setReplyTo: (replyTo: ReplyTo | null) => void
   setLastReadMessageId: (conversationId: string, userId: string, messageId: string) => void
   markMessagesRead: (conversationId: string, upToMessageId: string) => void
+  updateVanishingMode: (conversationId: string, vanishingMode: boolean, durationHours: number | null) => void
 }
 
 const TYPING_EXPIRY_MS = 4000
@@ -225,4 +226,13 @@ export const useChatStore = create<ChatState>((set) => ({
         },
       }
     }),
+
+  updateVanishingMode: (conversationId, vanishingMode, durationHours) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId
+          ? { ...c, vanishing_mode: vanishingMode, vanishing_duration_hours: durationHours }
+          : c
+      ),
+    })),
 }))

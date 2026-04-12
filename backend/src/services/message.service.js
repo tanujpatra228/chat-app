@@ -18,11 +18,21 @@ async function sendMessage({ conversationId, senderId, content, replyToId }) {
     }
   }
 
+  // Check if conversation has vanishing mode
+  const conversation = await conversationRepo.findById(conversationId);
+  let expiresAt = null;
+  if (conversation?.vanishing_mode && conversation.vanishing_duration_hours) {
+    expiresAt = new Date(
+      Date.now() + conversation.vanishing_duration_hours * 3600000
+    ).toISOString();
+  }
+
   return messageRepo.createMessage({
     conversationId,
     senderId,
     content,
     replyToId,
+    expiresAt,
   });
 }
 
@@ -60,4 +70,11 @@ async function deleteMessage(messageId, userId) {
   return messageRepo.softDelete(messageId);
 }
 
-module.exports = { sendMessage, getMessages, deleteMessage };
+async function searchMessages(query, userId) {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+  return messageRepo.searchMessages(query.trim(), userId);
+}
+
+module.exports = { sendMessage, getMessages, deleteMessage, searchMessages };

@@ -27,6 +27,8 @@ export interface Conversation {
   last_message_at: string | null
   last_message_is_deleted: boolean | null
   unread_count: number
+  vanishing_mode: boolean
+  vanishing_duration_hours: number | null
 }
 
 export interface Message {
@@ -44,8 +46,20 @@ export interface Message {
   reply_to_content?: string | null
   reply_to_sender_id?: string | null
   reply_to_sender_username?: string | null
+  expires_at?: string | null
   // Client-side only
   status?: "sending" | "sent" | "failed"
   tempId?: string
   readByOther?: boolean
+}
+
+export interface SearchResult {
+  id: string
+  conversation_id: string
+  sender_id: string
+  content: string
+  created_at: string
+  is_deleted: boolean
+  sender_username: string
+  headline: string
 }

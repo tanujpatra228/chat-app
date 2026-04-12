@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Plus, LogOut } from "lucide-react"
+import { Plus, LogOut, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -22,6 +22,7 @@ interface ConversationListProps {
   activeId: string | null
   onSelect: (id: string) => void
   onConversationCreated: () => void
+  onOpenSearch?: () => void
 }
 
 export function ConversationList({
@@ -29,6 +30,7 @@ export function ConversationList({
   activeId,
   onSelect,
   onConversationCreated,
+  onOpenSearch,
 }: ConversationListProps) {
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -69,6 +71,11 @@ export function ConversationList({
           </p>
         </div>
         <div className="flex items-center gap-1">
+          {onOpenSearch && (
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onOpenSearch}>
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">

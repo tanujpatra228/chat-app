@@ -7,6 +7,7 @@ const pool = require("./config/db");
 const authenticate = require("./middleware/authenticate");
 const errorHandler = require("./middleware/errorHandler");
 const initializeSocket = require("./socket");
+const startCleanupJob = require("./jobs/cleanupExpiredMessages");
 
 // Routes
 const authRoutes = require("./routes/auth.routes");
@@ -46,6 +47,9 @@ app.use(errorHandler);
 
 // Initialize Socket.IO
 const io = initializeSocket(server);
+
+// Start background jobs
+startCleanupJob();
 
 // Use server.listen instead of app.listen for Socket.IO compatibility
 server.listen(PORT, () => {

@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/users/UserAvatar"
+import { VanishingToggle } from "./VanishingToggle"
 import { formatLastSeen } from "@/utils/formatDate"
 import type { Conversation } from "@/lib/types"
 
@@ -45,11 +46,23 @@ export function ChatHeader({ conversation, onBack, typingUsers = [] }: ChatHeade
         size="sm"
       />
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-sm font-semibold">{name}</h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="truncate text-sm font-semibold">{name}</h2>
+          {conversation.vanishing_mode && (
+            <span className="text-amber-500 text-[10px]" title="Vanishing messages on">
+              &#9760;
+            </span>
+          )}
+        </div>
         <p className={`truncate text-xs ${isTyping ? "text-primary font-medium" : "text-muted-foreground"}`}>
           {statusText}
         </p>
       </div>
+      <VanishingToggle
+        conversationId={conversation.id}
+        isEnabled={conversation.vanishing_mode}
+        durationHours={conversation.vanishing_duration_hours}
+      />
     </div>
   )
 }

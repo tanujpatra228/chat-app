@@ -16,6 +16,7 @@ export function useSocket() {
     setTypingUser,
     clearTypingUser,
     markMessagesRead,
+    updateVanishingMode,
   } = useChatStore()
 
   useEffect(() => {
@@ -98,6 +99,19 @@ export function useSocket() {
       markMessagesRead(conversationId, lastReadMessageId)
     }
 
+    const handleVanishingModeChanged = ({
+      conversationId,
+      vanishingMode,
+      durationHours,
+    }: {
+      conversationId: string
+      vanishingMode: boolean
+      durationHours: number | null
+      changedByUserId: string
+    }) => {
+      updateVanishingMode(conversationId, vanishingMode, durationHours)
+    }
+
     socket.on("new_message", handleNewMessage)
     socket.on("message_deleted", handleMessageDeleted)
     socket.on("user_online", handleUserOnline)
@@ -105,6 +119,7 @@ export function useSocket() {
     socket.on("user_typing", handleUserTyping)
     socket.on("user_stopped_typing", handleUserStoppedTyping)
     socket.on("messages_read", handleMessagesRead)
+    socket.on("vanishing_mode_changed", handleVanishingModeChanged)
 
     return () => {
       socket.off("new_message", handleNewMessage)
@@ -114,6 +129,7 @@ export function useSocket() {
       socket.off("user_typing", handleUserTyping)
       socket.off("user_stopped_typing", handleUserStoppedTyping)
       socket.off("messages_read", handleMessagesRead)
+      socket.off("vanishing_mode_changed", handleVanishingModeChanged)
     }
   }, [
     isAuthenticated,
@@ -126,5 +142,6 @@ export function useSocket() {
     setTypingUser,
     clearTypingUser,
     markMessagesRead,
+    updateVanishingMode,
   ])
 }

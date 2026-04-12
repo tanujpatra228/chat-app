@@ -43,4 +43,20 @@ async function verifyParticipant(conversationId, userId) {
   }
 }
 
-module.exports = { getOrCreateConversation, getUserConversations, verifyParticipant };
+const VALID_DURATIONS = [1, 6, 24, 168];
+
+async function toggleVanishingMode(conversationId, userId, vanishingMode, durationHours) {
+  await verifyParticipant(conversationId, userId);
+
+  if (vanishingMode && !VALID_DURATIONS.includes(durationHours)) {
+    throw new ApiError(400, `Duration must be one of: ${VALID_DURATIONS.join(", ")} hours`);
+  }
+
+  return conversationRepo.updateVanishingMode(
+    conversationId,
+    vanishingMode,
+    vanishingMode ? durationHours : null
+  );
+}
+
+module.exports = { getOrCreateConversation, getUserConversations, verifyParticipant, toggleVanishingMode };

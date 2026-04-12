@@ -41,6 +41,8 @@ async function getUserConversations(userId) {
   const { rows } = await pool.query(
     `SELECT
        c.id,
+       c.vanishing_mode,
+       c.vanishing_duration_hours,
        c.created_at,
        c.updated_at,
        u.id AS other_user_id,
@@ -83,10 +85,22 @@ async function getUserConversations(userId) {
 
 async function findById(conversationId) {
   const { rows } = await pool.query(
-    `SELECT id, created_at, updated_at FROM conversations WHERE id = $1`,
+    `SELECT id, vanishing_mode, vanishing_duration_hours, created_at, updated_at
+     FROM conversations WHERE id = $1`,
     [conversationId]
   );
   return rows[0] || null;
+}
+
+async function updateVanishingMode(conversationId, vanishingMode, durationHours) {
+  const { rows } = await pool.query(
+    `UPDATE conversations
+     SET vanishing_mode = $2, vanishing_duration_hours = $3, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, vanishing_mode, vanishing_duration_hours`,
+    [conversationId, vanishingMode, durationHours]
+  );
+  return rows[0];
 }
 
 async function isParticipant(conversationId, userId) {
@@ -123,4 +137,5 @@ module.exports = {
   isParticipant,
   getParticipantIds,
   updateLastReadMessage,
+  updateVanishingMode,
 };

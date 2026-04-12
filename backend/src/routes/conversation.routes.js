@@ -44,4 +44,31 @@ router.get("/:id/messages", async (req, res, next) => {
   }
 });
 
+router.put("/:id/vanishing", async (req, res, next) => {
+  try {
+    const { vanishingMode, durationHours } = req.body;
+    const result = await conversationService.toggleVanishingMode(
+      req.params.id,
+      req.user.userId,
+      vanishingMode,
+      durationHours || 24
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/search/messages", async (req, res, next) => {
+  try {
+    const results = await messageService.searchMessages(
+      req.query.q,
+      req.user.userId
+    );
+    res.json(results);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
