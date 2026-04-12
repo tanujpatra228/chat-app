@@ -12,18 +12,20 @@ function registerMessageHandlers(io, socket) {
         replyToId,
       });
 
+      const messageWithUsername = {
+        ...message,
+        sender_username: socket.username,
+      };
+
       // Broadcast to other participants in the room
       socket.to(conversationId).emit("new_message", {
         conversationId,
-        message: {
-          ...message,
-          sender_username: socket.username,
-        },
+        message: messageWithUsername,
       });
 
       // Acknowledge to sender with saved message
       if (typeof ack === "function") {
-        ack({ success: true, message });
+        ack({ success: true, message: messageWithUsername });
       }
     } catch (err) {
       if (typeof ack === "function") {

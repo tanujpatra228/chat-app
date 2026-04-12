@@ -73,7 +73,15 @@ export const useChatStore = create<ChatState>((set) => ({
         messages: {
           ...state.messages,
           [conversationId]: existing.map((m) =>
-            m.tempId === tempId ? { ...message, status: "sent" as const } : m
+            m.tempId === tempId
+              ? {
+                  ...m,
+                  ...message,
+                  sender_username: message.sender_username || m.sender_username,
+                  sender_display_name: message.sender_display_name || m.sender_display_name,
+                  status: "sent" as const,
+                }
+              : m
           ),
         },
       }
