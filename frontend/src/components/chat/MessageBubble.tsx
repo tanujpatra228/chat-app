@@ -7,7 +7,24 @@ interface MessageBubbleProps {
   isMine: boolean
 }
 
+const NUDGE_EMOJI = "\u{1F449}"
+
 export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+  const isNudge = message.content === NUDGE_EMOJI && !message.is_deleted
+
+  if (isNudge) {
+    return (
+      <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-1 md:px-4`}>
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="animate-bounce text-4xl">{NUDGE_EMOJI}</span>
+          <span className="text-muted-foreground text-[10px]">
+            {formatMessageTime(message.created_at)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   if (message.is_deleted) {
     return (
       <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}>

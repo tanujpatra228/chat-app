@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
@@ -21,6 +21,24 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   )
   const bottomRef = useRef<HTMLDivElement>(null)
   const prevMessageCountRef = useRef(0)
+  const lastTapRef = useRef(0)
+
+  const handleDoubleTap = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      // Ignore if tapping on buttons, inputs, or interactive elements
+      const target = e.target as HTMLElement
+      if (target.closest("button, textarea, input, a")) return
+
+      const now = Date.now()
+      if (now - lastTapRef.current < 300) {
+        sendMessage("\u{1F449}")
+        lastTapRef.current = 0
+      } else {
+        lastTapRef.current = now
+      }
+    },
+    [sendMessage]
+  )
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -34,7 +52,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     <div className="flex h-full flex-col bg-background">
       <ChatHeader conversation={conversation} onBack={onBack} />
 
-      <ScrollArea className="flex-1 py-2">
+      <ScrollArea className="flex-1 py-2" onClick={handleDoubleTap}>
         {hasMore && (
           <div className="flex justify-center py-2">
             <Button
