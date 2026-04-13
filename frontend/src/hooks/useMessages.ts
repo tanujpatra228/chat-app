@@ -61,7 +61,7 @@ export function useMessages(conversationId: string | null) {
   }, [conversationId, isLoading, prependMessages])
 
   const sendMessage = useCallback(
-    (content: string, replyToId?: string) => {
+    (content: string, replyToId?: string, replyToContent?: string, replyToSenderUsername?: string) => {
       if (!conversationId || !user) return
 
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -72,6 +72,8 @@ export function useMessages(conversationId: string | null) {
         sender_id: user.id,
         content,
         reply_to_id: replyToId || null,
+        reply_to_content: replyToContent || null,
+        reply_to_sender_username: replyToSenderUsername || null,
         is_deleted: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

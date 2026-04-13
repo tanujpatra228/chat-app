@@ -79,6 +79,8 @@ export const useChatStore = create<ChatState>((set) => ({
                   ...message,
                   sender_username: message.sender_username || m.sender_username,
                   sender_display_name: message.sender_display_name || m.sender_display_name,
+                  reply_to_content: message.reply_to_content || m.reply_to_content,
+                  reply_to_sender_username: message.reply_to_sender_username || m.reply_to_sender_username,
                   status: "sent" as const,
                 }
               : m

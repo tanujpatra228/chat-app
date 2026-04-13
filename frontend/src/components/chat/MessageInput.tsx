@@ -32,7 +32,7 @@ function saveDraft(conversationId: string, content: string) {
 
 interface MessageInputProps {
   conversationId: string
-  onSend: (content: string, replyToId?: string) => void
+  onSend: (content: string, replyToId?: string, replyToContent?: string, replyToSenderUsername?: string) => void
   onTyping?: () => void
   onStopTyping?: () => void
   onUploadStart?: () => void
@@ -76,7 +76,7 @@ export function MessageInput({
       e.preventDefault()
       const trimmed = content.trim()
       if (!trimmed) return
-      onSend(trimmed, replyTo?.messageId)
+      onSend(trimmed, replyTo?.messageId, replyTo?.content, replyTo?.senderUsername)
       setContent("")
       saveDraft(conversationId, "")
       setReplyTo(null)
