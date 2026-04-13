@@ -69,7 +69,7 @@ export function MessageBubble({
   if (message.is_deleted) {
     return (
       <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}>
-        <div className="text-muted-foreground rounded-2xl px-3 py-2 text-sm italic">
+        <div className="text-muted-foreground rounded-xl px-3 py-2 text-sm italic">
           Message deleted
         </div>
       </div>
@@ -114,12 +114,12 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => setLightboxOpen(true)}
-              className="block cursor-zoom-in overflow-hidden rounded-2xl"
+              className="block cursor-zoom-in overflow-hidden rounded-xl"
             >
               <img
                 src={message.image_url}
                 alt="Shared image"
-                className="max-h-64 w-auto rounded-2xl object-cover"
+                className="max-h-64 w-auto rounded-xl object-cover"
                 loading="lazy"
               />
             </button>
@@ -132,7 +132,7 @@ export function MessageBubble({
           </>
         ) : (
           <div
-            className={`rounded-2xl px-3 py-2 text-sm md:px-4 ${
+            className={`rounded-xl px-3 py-2 text-sm md:px-4 ${
               isMine
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-foreground"
