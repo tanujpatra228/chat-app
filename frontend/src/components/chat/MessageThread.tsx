@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Button } from "@/components/ui/button"
 import { Loader2, ImageUp } from "lucide-react"
 import { ChatHeader } from "./ChatHeader"
 import { MessageBubble } from "./MessageBubble"
@@ -63,7 +62,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     prevMessageCountRef.current = messages.length
   }, [messages.length, virtualizer])
 
-  // Track if user is near bottom
+  // Track scroll position: auto-scroll flag + infinite scroll upward
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
@@ -72,11 +71,16 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
       if (!container) return
       const { scrollTop, scrollHeight, clientHeight } = container
       shouldScrollRef.current = scrollHeight - scrollTop - clientHeight < 100
+
+      // Auto-load earlier messages when scrolled near the top
+      if (scrollTop < 100 && hasMore && !isLoading) {
+        loadMore()
+      }
     }
 
     container.addEventListener("scroll", handleScroll, { passive: true })
     return () => container.removeEventListener("scroll", handleScroll)
-  }, [])
+  }, [hasMore, isLoading, loadMore])
 
   // Clear unread count immediately when opening a conversation
   useEffect(() => {
@@ -147,19 +151,9 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         className="min-h-0 flex-1 overflow-y-auto py-2"
         onClick={handleDoubleTap}
       >
-        {hasMore && (
-          <div className="flex justify-center py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={loadMore}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Load earlier messages
-            </Button>
+        {isLoading && hasMore && (
+          <div className="flex justify-center py-3">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
 
