@@ -81,6 +81,8 @@ export function MessageInput({
       saveDraft(conversationId, "")
       setReplyTo(null)
       onStopTyping?.()
+      // Re-focus textarea to keep keyboard open on mobile
+      requestAnimationFrame(() => textareaRef.current?.focus())
     },
     [content, conversationId, replyTo, onSend, setReplyTo, onStopTyping]
   )
@@ -203,6 +205,8 @@ export function MessageInput({
         <Button
           type="submit"
           size="icon"
+          tabIndex={-1}
+          onMouseDown={(e) => e.preventDefault()}
           disabled={disabled || isUploading || !content.trim()}
           className="h-9 w-9 shrink-0 rounded-full"
         >
