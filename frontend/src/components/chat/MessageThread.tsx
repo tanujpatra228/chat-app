@@ -135,7 +135,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   )
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <ChatHeader
         conversation={conversation}
         onBack={onBack}
@@ -144,7 +144,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto py-2"
+        className="min-h-0 flex-1 overflow-y-auto py-2"
         onClick={handleDoubleTap}
       >
         {hasMore && (

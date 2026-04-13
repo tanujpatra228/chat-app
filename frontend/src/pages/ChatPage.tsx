@@ -37,11 +37,11 @@ export function ChatPage() {
   const hasActive = !!activeConversationId
 
   return (
-    <div className="fixed inset-0 flex">
+    <div className="relative flex h-[100dvh] w-full overflow-hidden">
       {/* Conversation list — full screen on mobile, fixed sidebar on desktop */}
       <div
-        className={`absolute inset-0 flex flex-col md:relative md:inset-auto md:w-80 md:shrink-0 ${
-          hasActive || showSearch ? "pointer-events-none hidden md:pointer-events-auto md:flex" : ""
+        className={`h-full w-full shrink-0 flex-col md:flex md:w-80 ${
+          hasActive || showSearch ? "hidden md:flex" : "flex"
         }`}
       >
         <ConversationList
@@ -55,7 +55,7 @@ export function ChatPage() {
 
       {/* Search panel — replaces thread on mobile, overlay on desktop */}
       {showSearch && (
-        <div className="absolute inset-0 flex flex-col md:relative md:inset-auto md:flex-1">
+        <div className="flex h-full w-full flex-col md:flex-1">
           <MessageSearch
             onSelectResult={handleSelectConversation}
             onClose={() => setShowSearch(false)}
@@ -66,8 +66,8 @@ export function ChatPage() {
       {/* Message thread — full screen on mobile, flex panel on desktop */}
       {!showSearch && (
         <div
-          className={`absolute inset-0 flex flex-col md:relative md:inset-auto md:flex-1 ${
-            hasActive ? "" : "pointer-events-none hidden md:pointer-events-auto md:flex"
+          className={`h-full w-full min-w-0 flex-col md:flex md:flex-1 ${
+            hasActive ? "flex" : "hidden md:flex"
           }`}
         >
           {activeConversation ? (
