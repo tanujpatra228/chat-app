@@ -110,6 +110,29 @@ async function findById(messageId) {
   return decryptMessage(rows[0]);
 }
 
+async function editMessage(messageId, newContent) {
+  const encrypted = encrypt(newContent);
+
+  const { rows } = await pool.query(
+    `UPDATE messages
+     SET content = $2, encrypted_content = $3, iv = $4, auth_tag = $5,
+         is_edited = true, updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [
+      messageId,
+      isEnabled() ? "" : newContent,
+      isEnabled() ? encrypted.content : null,
+      encrypted.iv,
+      encrypted.authTag,
+    ]
+  );
+
+  const message = rows[0];
+  if (message) message.content = newContent;
+  return message;
+}
+
 async function softDelete(messageId) {
   const { rows } = await pool.query(
     `UPDATE messages SET is_deleted = true, content = '', encrypted_content = NULL, iv = NULL, auth_tag = NULL, image_url = NULL, image_public_id = NULL, updated_at = NOW()
@@ -174,6 +197,7 @@ module.exports = {
   createMessage,
   getMessages,
   findById,
+  editMessage,
   softDelete,
   getExpiredImagePublicIds,
   deleteExpiredMessages,

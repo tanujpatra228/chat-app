@@ -34,6 +34,32 @@ function registerMessageHandlers(io, socket) {
     }
   });
 
+  socket.on("edit_message", async (data, ack) => {
+    try {
+      const { messageId, conversationId, content } = data;
+
+      const edited = await messageService.editMessage(
+        messageId,
+        socket.userId,
+        content
+      );
+
+      socket.to(conversationId).emit("message_edited", {
+        conversationId,
+        messageId,
+        content: edited.content,
+      });
+
+      if (typeof ack === "function") {
+        ack({ success: true, message: edited });
+      }
+    } catch (err) {
+      if (typeof ack === "function") {
+        ack({ success: false, error: err.message });
+      }
+    }
+  });
+
   socket.on("delete_message", async (data, ack) => {
     try {
       const { messageId, conversationId } = data;

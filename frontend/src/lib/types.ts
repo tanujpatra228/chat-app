@@ -46,6 +46,7 @@ export interface Message {
   reply_to_content?: string | null
   reply_to_sender_id?: string | null
   reply_to_sender_username?: string | null
+  is_edited?: boolean
   message_type?: "text" | "image"
   image_url?: string | null
   image_public_id?: string | null

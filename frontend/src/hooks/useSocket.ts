@@ -17,6 +17,7 @@ export function useSocket() {
     clearTypingUser,
     markMessagesRead,
     updateVanishingMode,
+    editMessage,
   } = useChatStore()
 
   // Use ref to avoid stale closure for activeConversationId
@@ -103,6 +104,18 @@ export function useSocket() {
       markMessagesRead(conversationId, lastReadMessageId)
     }
 
+    const handleMessageEdited = ({
+      conversationId,
+      messageId,
+      content,
+    }: {
+      conversationId: string
+      messageId: string
+      content: string
+    }) => {
+      editMessage(conversationId, messageId, content)
+    }
+
     const handleVanishingModeChanged = ({
       conversationId,
       vanishingMode,
@@ -124,6 +137,7 @@ export function useSocket() {
     socket.on("user_stopped_typing", handleUserStoppedTyping)
     socket.on("messages_read", handleMessagesRead)
     socket.on("vanishing_mode_changed", handleVanishingModeChanged)
+    socket.on("message_edited", handleMessageEdited)
 
     return () => {
       socket.off("new_message", handleNewMessage)
@@ -134,6 +148,7 @@ export function useSocket() {
       socket.off("user_stopped_typing", handleUserStoppedTyping)
       socket.off("messages_read", handleMessagesRead)
       socket.off("vanishing_mode_changed", handleVanishingModeChanged)
+      socket.off("message_edited", handleMessageEdited)
     }
   }, [
     isAuthenticated,
@@ -146,5 +161,6 @@ export function useSocket() {
     clearTypingUser,
     markMessagesRead,
     updateVanishingMode,
+    editMessage,
   ])
 }

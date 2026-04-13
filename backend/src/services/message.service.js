@@ -59,6 +59,27 @@ async function getMessages(conversationId, userId, paginationParams) {
   return { messages, hasMore, nextCursor };
 }
 
+async function editMessage(messageId, userId, newContent) {
+  const message = await messageRepo.findById(messageId);
+  if (!message) {
+    throw new ApiError(404, "Message not found");
+  }
+  if (message.sender_id !== userId) {
+    throw new ApiError(403, "Can only edit your own messages");
+  }
+  if (message.is_edited) {
+    throw new ApiError(400, "Message can only be edited once");
+  }
+  if (message.is_deleted) {
+    throw new ApiError(400, "Cannot edit a deleted message");
+  }
+  if (message.message_type !== "text") {
+    throw new ApiError(400, "Only text messages can be edited");
+  }
+
+  return messageRepo.editMessage(messageId, newContent);
+}
+
 async function deleteMessage(messageId, userId) {
   const message = await messageRepo.findById(messageId);
   if (!message) {
@@ -117,4 +138,4 @@ async function searchMessages(query, userId) {
   return messageRepo.searchMessages(query.trim(), userId);
 }
 
-module.exports = { sendMessage, sendImageMessage, getMessages, deleteMessage, searchMessages };
+module.exports = { sendMessage, sendImageMessage, getMessages, editMessage, deleteMessage, searchMessages };

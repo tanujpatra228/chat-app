@@ -1,8 +1,10 @@
 import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
+import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
+import { getSocket } from "@/lib/socket"
+import { useChatStore } from "@/stores/chatStore"
 
 interface MessageBubbleProps {
   message: Message
@@ -23,19 +25,74 @@ export function MessageBubble({
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const didLongPress = useRef(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState("")
+  const editMessage = useChatStore((s) => s.editMessage)
 
   const canReply = !!onReply && !message.tempId && !message.is_deleted
+  const canEdit =
+    isMine &&
+    !message.is_edited &&
+    !message.is_deleted &&
+    !message.tempId &&
+    message.message_type !== "image" &&
+    message.content !== NUDGE_EMOJI
+
+  function startEditing() {
+    setEditContent(message.content)
+    setIsEditing(true)
+  }
+
+  function cancelEditing() {
+    setIsEditing(false)
+    setEditContent("")
+  }
+
+  function submitEdit() {
+    const trimmed = editContent.trim()
+    if (!trimmed || trimmed === message.content) {
+      cancelEditing()
+      return
+    }
+
+    const socket = getSocket()
+    if (socket) {
+      socket.emit(
+        "edit_message",
+        { messageId: message.id, conversationId: message.conversation_id, content: trimmed },
+        (ack: { success: boolean; error?: string }) => {
+          if (ack.success) {
+            editMessage(message.conversation_id, message.id, trimmed)
+          }
+        }
+      )
+    }
+    setIsEditing(false)
+    setEditContent("")
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      submitEdit()
+    }
+    if (e.key === "Escape") {
+      cancelEditing()
+    }
+  }
 
   const handleTouchStart = useCallback(() => {
-    if (!canReply) return
+    if (!canReply && !canEdit) return
     didLongPress.current = false
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true
-      onReply?.(message)
-      // Haptic feedback if available
+      // On mobile long-press: reply for other's messages, show both options for own
+      if (canReply) {
+        onReply?.(message)
+      }
       if (navigator.vibrate) navigator.vibrate(30)
     }, LONG_PRESS_MS)
-  }, [canReply, message, onReply])
+  }, [canReply, canEdit, message, onReply])
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -81,14 +138,20 @@ export function MessageBubble({
       id={`msg-${message.id}`}
       className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
     >
-      {/* Reply button — left side for own messages (desktop hover) */}
-      {isMine && canReply && (
-        <button
-          onClick={() => onReply(message)}
-          className="mr-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
-        >
-          <Reply className="h-4 w-4 text-muted-foreground" />
-        </button>
+      {/* Action buttons — left side for own messages (desktop hover) */}
+      {isMine && (canReply || canEdit) && (
+        <div className="mr-1 hidden items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:flex group-hover:opacity-60">
+          {canEdit && (
+            <button onClick={startEditing} className="hover:!opacity-100">
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+          {canReply && (
+            <button onClick={() => onReply?.(message)} className="hover:!opacity-100">
+              <Reply className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
       )}
 
       <div
@@ -109,6 +172,8 @@ export function MessageBubble({
             <p className="truncate">{message.reply_to_content}</p>
           </button>
         )}
+
+        {/* Image message */}
         {message.message_type === "image" && message.image_url ? (
           <>
             <button
@@ -130,7 +195,36 @@ export function MessageBubble({
               />
             )}
           </>
+        ) : isEditing ? (
+          /* Edit mode */
+          <div className={`rounded-xl border-2 border-primary px-3 py-2 ${
+            isMine ? "bg-primary/10" : "bg-muted"
+          }`}>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              autoFocus
+              rows={1}
+              className="w-full resize-none bg-transparent text-sm outline-none"
+            />
+            <div className="mt-1 flex justify-end gap-2">
+              <button
+                onClick={cancelEditing}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitEdit}
+                className="text-xs font-medium text-primary hover:text-primary/80"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         ) : (
+          /* Text message */
           <div
             className={`rounded-xl px-3 py-2 text-sm md:px-4 ${
               isMine
@@ -141,9 +235,14 @@ export function MessageBubble({
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           </div>
         )}
+
+        {/* Timestamp + status */}
         <div
           className={`flex items-center gap-1 px-1 ${isMine ? "justify-end" : "justify-start"}`}
         >
+          {message.is_edited && (
+            <span className="text-muted-foreground text-[10px] italic">edited</span>
+          )}
           <span className="text-muted-foreground text-[10px]">
             {formatMessageTime(message.created_at)}
           </span>
@@ -162,10 +261,10 @@ export function MessageBubble({
         </div>
       </div>
 
-      {/* Reply button — right side for other's messages (desktop hover) */}
+      {/* Action buttons — right side for other's messages (desktop hover) */}
       {!isMine && canReply && (
         <button
-          onClick={() => onReply(message)}
+          onClick={() => onReply?.(message)}
           className="ml-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
         >
           <Reply className="h-4 w-4 text-muted-foreground" />
