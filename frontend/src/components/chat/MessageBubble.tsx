@@ -27,6 +27,7 @@ export function MessageBubble({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState("")
+  const [showActions, setShowActions] = useState(false)
   const editMessage = useChatStore((s) => s.editMessage)
 
   const canReply = !!onReply && !message.tempId && !message.is_deleted
@@ -86,13 +87,17 @@ export function MessageBubble({
     didLongPress.current = false
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true
-      // On mobile long-press: reply for other's messages, show both options for own
-      if (canReply) {
+      if (navigator.vibrate) navigator.vibrate(30)
+
+      // Own message with edit available: show action menu
+      if (isMine && (canEdit || canReply)) {
+        setShowActions(true)
+      } else if (canReply) {
+        // Other's message: reply directly
         onReply?.(message)
       }
-      if (navigator.vibrate) navigator.vibrate(30)
     }, LONG_PRESS_MS)
-  }, [canReply, canEdit, message, onReply])
+  }, [canReply, canEdit, isMine, message, onReply])
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -234,6 +239,42 @@ export function MessageBubble({
           >
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           </div>
+        )}
+
+        {/* Mobile action menu (shown on long-press for own messages) */}
+        {showActions && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowActions(false)}
+            />
+            <div className={`z-50 flex gap-1 rounded-lg border bg-popover p-1 shadow-lg ${isMine ? "self-end" : "self-start"}`}>
+              {canReply && (
+                <button
+                  onClick={() => {
+                    setShowActions(false)
+                    onReply?.(message)
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  <Reply className="h-3.5 w-3.5" />
+                  Reply
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  onClick={() => {
+                    setShowActions(false)
+                    startEditing()
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+              )}
+            </div>
+          </>
         )}
 
         {/* Timestamp + status */}
