@@ -21,6 +21,7 @@ export interface Conversation {
   other_avatar_url: string | null
   other_is_online: boolean
   other_last_seen: string
+  other_last_read_message_id: string | null
   last_message_id: string | null
   last_message_content: string | null
   last_message_sender_id: string | null

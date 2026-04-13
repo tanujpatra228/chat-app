@@ -227,6 +227,11 @@ export const useChatStore = create<ChatState>((set) => ({
       const msgs = state.messages[conversationId] || []
       let found = false
       return {
+        conversations: state.conversations.map((c) =>
+          c.id === conversationId
+            ? { ...c, other_last_read_message_id: upToMessageId }
+            : c
+        ),
         messages: {
           ...state.messages,
           [conversationId]: msgs.map((m) => {

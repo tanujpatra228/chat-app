@@ -53,6 +53,7 @@ async function getUserConversations(userId) {
        u.avatar_url AS other_avatar_url,
        u.is_online AS other_is_online,
        u.last_seen AS other_last_seen,
+       cp2.last_read_message_id AS other_last_read_message_id,
        m.id AS last_message_id,
        m.content AS last_message_content,
        m.sender_id AS last_message_sender_id,
