@@ -91,16 +91,17 @@ export function useMessages(conversationId: string | null) {
   }, [conversationId, isLoading, user, otherLastReadMessageId, prependMessages])
 
   const sendMessage = useCallback(
-    (content: string, replyToId?: string, replyToContent?: string, replyToSenderUsername?: string) => {
+    (content: string, replyToId?: string, replyToContent?: string, replyToSenderUsername?: string, nudgeType?: "point" | "heart") => {
       if (!conversationId || !user) return
 
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const isNudge = nudgeType !== undefined
       const optimisticMessage = {
         id: tempId,
         tempId,
         conversation_id: conversationId,
         sender_id: user.id,
-        content,
+        content: isNudge ? (nudgeType === "heart" ? "♥️" : "👉") : content,
         reply_to_id: replyToId || null,
         reply_to_content: replyToContent || null,
         reply_to_sender_username: replyToSenderUsername || null,
@@ -111,6 +112,8 @@ export function useMessages(conversationId: string | null) {
         sender_display_name: user.displayName,
         status: "sending" as const,
         stableKey: tempId,
+        message_type: isNudge ? "nudge" as const : "text" as const,
+        nudge_type: nudgeType,
       }
 
       addMessage(conversationId, optimisticMessage)
@@ -123,7 +126,7 @@ export function useMessages(conversationId: string | null) {
 
       socket.emit(
         "send_message",
-        { conversationId, content, replyToId },
+        { conversationId, content: isNudge ? (nudgeType === "heart" ? "♥️" : "👉") : content, nudgeType },
         (ack: { success: boolean; message?: any; error?: string }) => {
           if (ack.success && ack.message) {
             replaceMessage(conversationId, tempId, ack.message)

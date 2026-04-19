@@ -16,6 +16,8 @@ interface MessageThreadProps {
   onBack?: () => void
 }
 
+const defaultNudgeType = import.meta.env.VITE_DEFAULT_NUDGE_TYPE === "heart" ? "heart" : "point"
+
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
   const { setReplyTo, decrementUnread, editMessage } = useChatStore()
@@ -29,6 +31,11 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const shouldScrollRef = useRef(true)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
+  const [nudgeType, setNudgeType] = useState<"point" | "heart">(defaultNudgeType)
+
+  const toggleNudgeType = useCallback(() => {
+    setNudgeType(prev => prev === "point" ? "heart" : "point")
+  }, [])
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -45,13 +52,13 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
 
       const now = Date.now()
       if (now - lastTapRef.current < 300) {
-        sendMessage("\u{1F449}")
+        sendMessage("", undefined, undefined, undefined, nudgeType)
         lastTapRef.current = 0
       } else {
         lastTapRef.current = now
       }
     },
-    [sendMessage]
+    [sendMessage, nudgeType]
   )
 
   // Scroll to bottom on new messages (only if user was already at bottom)
@@ -186,6 +193,8 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         conversation={conversation}
         onBack={onBack}
         typingUsers={typingUsers}
+        nudgeType={nudgeType}
+        onNudgeToggle={toggleNudgeType}
       />
 
       <div

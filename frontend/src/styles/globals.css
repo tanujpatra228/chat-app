@@ -159,3 +159,28 @@
   70%  { transform: scaleX(-1) translateX(0); }
   100% { transform: scaleX(-1) translateX(0); }
 }
+
+@keyframes heartbeat {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.1); }
+  50%  { transform: scale(1.2); }
+  75%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 0.4s ease-in-out 2 both;
+}
+
+.animate-heartbeat-reverse {
+  transform: scaleX(-1);
+  animation: heartbeat-reverse 0.4s ease-in-out 2 both;
+}
+
+@keyframes heartbeat-reverse {
+  0%   { transform: scaleX(-1) scale(1); }
+  25%  { transform: scaleX(-1) scale(1.1); }
+  50%  { transform: scaleX(-1) scale(1.2); }
+  75%  { transform: scaleX(-1) scale(1.1); }
+  100% { transform: scaleX(-1) scale(1); }
+}

@@ -13,12 +13,12 @@ function decryptMessage(message) {
   return message;
 }
 
-async function createMessage({ conversationId, senderId, content, replyToId, expiresAt, messageType, imageUrl, imagePublicId }) {
+async function createMessage({ conversationId, senderId, content, replyToId, expiresAt, messageType, nudgeType, imageUrl, imagePublicId }) {
   const encrypted = content ? encrypt(content) : { content: null, iv: null, authTag: null };
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, content, encrypted_content, iv, auth_tag, reply_to_id, expires_at, message_type, image_url, image_public_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `INSERT INTO messages (conversation_id, sender_id, content, encrypted_content, iv, auth_tag, reply_to_id, expires_at, message_type, nudge_type, image_url, image_public_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       conversationId,
@@ -30,6 +30,7 @@ async function createMessage({ conversationId, senderId, content, replyToId, exp
       replyToId || null,
       expiresAt || null,
       messageType || "text",
+      nudgeType || null,
       imageUrl || null,
       imagePublicId || null,
     ]

@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/users/UserAvatar"
 import { VanishingToggle } from "./VanishingToggle"
+import { NudgeToggle } from "./NudgeToggle"
 import { formatLastSeen } from "@/utils/formatDate"
 import type { Conversation } from "@/lib/types"
 
@@ -14,9 +15,11 @@ interface ChatHeaderProps {
   conversation: Conversation
   onBack?: () => void
   typingUsers?: TypingUser[]
+  nudgeType?: "point" | "heart"
+  onNudgeToggle?: () => void
 }
 
-export function ChatHeader({ conversation, onBack, typingUsers = [] }: ChatHeaderProps) {
+export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, onNudgeToggle }: ChatHeaderProps) {
   const name = conversation.other_display_name || conversation.other_username
 
   let statusText: string
@@ -56,6 +59,9 @@ export function ChatHeader({ conversation, onBack, typingUsers = [] }: ChatHeade
         isEnabled={conversation.vanishing_mode}
         durationHours={conversation.vanishing_duration_hours}
       />
+      {nudgeType && onNudgeToggle && (
+        <NudgeToggle nudgeType={nudgeType} onToggle={onNudgeToggle} />
+      )}
     </div>
   )
 }

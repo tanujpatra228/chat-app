@@ -3,13 +3,14 @@ const messageService = require("../../services/message.service");
 function registerMessageHandlers(io, socket) {
   socket.on("send_message", async (data, ack) => {
     try {
-      const { conversationId, content, replyToId } = data;
+      const { conversationId, content, replyToId, nudgeType } = data;
 
       const message = await messageService.sendMessage({
         conversationId,
         senderId: socket.userId,
         content,
         replyToId,
+        nudgeType,
       });
 
       const messageWithUsername = {

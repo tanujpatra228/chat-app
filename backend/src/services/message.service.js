@@ -3,7 +3,7 @@ const conversationRepo = require("../repositories/conversation.repository");
 const uploadService = require("./upload.service");
 const ApiError = require("../utils/ApiError");
 
-async function sendMessage({ conversationId, senderId, content, replyToId }) {
+async function sendMessage({ conversationId, senderId, content, replyToId, nudgeType }) {
   const isParticipant = await conversationRepo.isParticipant(
     conversationId,
     senderId
@@ -34,6 +34,8 @@ async function sendMessage({ conversationId, senderId, content, replyToId }) {
     content,
     replyToId,
     expiresAt,
+    messageType: nudgeType ? "nudge" : "text",
+    nudgeType,
   });
 }
 

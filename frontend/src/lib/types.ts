@@ -48,7 +48,8 @@ export interface Message {
   reply_to_sender_id?: string | null
   reply_to_sender_username?: string | null
   is_edited?: boolean
-  message_type?: "text" | "image"
+  message_type?: "text" | "image" | "nudge"
+  nudge_type?: "point" | "heart"
   image_url?: string | null
   image_public_id?: string | null
   expires_at?: string | null
