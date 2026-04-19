@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 const { encrypt, decrypt, isEnabled } = require("../utils/encryption");
 
 function decryptMessage(message) {

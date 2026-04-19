@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 
 async function findConversationBetween(userOneId, userTwoId) {
   const { rows } = await pool.query(
@@ -12,7 +12,7 @@ async function findConversationBetween(userOneId, userTwoId) {
 }
 
 async function createConversation(userOneId, userTwoId) {
-  const client = await require("../config/db").connect();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
 

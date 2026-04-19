@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-const pool = require("./config/db");
+const { pool, singleton } = require("./config/db");
 const authenticate = require("./middleware/authenticate");
 const errorHandler = require("./middleware/errorHandler");
 const initializeSocket = require("./socket");
@@ -52,7 +52,63 @@ app.set("io", io);
 // Start background jobs
 startCleanupJob();
 
-// Use server.listen instead of app.listen for Socket.IO compatibility
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Graceful shutdown handler
+const gracefulShutdown = async (signal) => {
+  console.log(`\nReceived ${signal}, starting graceful shutdown...`);
+  
+  server.close(async () => {
+    console.log("HTTP server closed");
+    
+    try {
+      // Close database connection
+      await singleton.closePool();
+      console.log("Database connection closed");
+    } catch (err) {
+      console.error("Error closing database connection:", err);
+    }
+    
+    console.log("Server shutdown complete");
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+};
+
+// Handle graceful shutdown on signals
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Handle uncaught exceptions
+process.on("uncaughtException", async (err) => {
+  console.error("Uncaught Exception:", err);
+  await gracefulShutdown("uncaughtException");
 });
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", async (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  await gracefulShutdown("unhandledRejection");
+});
+
+// Test database connection and start server
+const startServer = async () => {
+  try {
+    // Test database connection
+    const result = await pool.query("SELECT NOW()");
+    console.log("Database connected successfully:", result.rows[0].now);
+
+    // Use server.listen instead of app.listen for Socket.IO compatibility
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to connect to database:", err.message);
+    process.exit(1);
+  }
+};
+
+startServer();
