@@ -50,11 +50,17 @@ const io = initializeSocket(server);
 app.set("io", io);
 
 // Start background jobs
-startCleanupJob();
+const stopCleanupJob = startCleanupJob();
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {
   console.log(`\nReceived ${signal}, starting graceful shutdown...`);
+  
+  // Stop cleanup job
+  if (stopCleanupJob) {
+    stopCleanupJob();
+    console.log("Cleanup job stopped");
+  }
   
   server.close(async () => {
     console.log("HTTP server closed");

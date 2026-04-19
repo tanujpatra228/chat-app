@@ -142,18 +142,26 @@ async function softDelete(messageId) {
   return rows[0];
 }
 
-async function getExpiredImagePublicIds() {
+async function getExpiredImagePublicIds(batchSize = 100) {
   const { rows } = await pool.query(
     `SELECT image_public_id FROM messages
      WHERE expires_at IS NOT NULL AND expires_at < NOW()
-       AND image_public_id IS NOT NULL`
+       AND image_public_id IS NOT NULL
+     LIMIT $1`,
+    [batchSize]
   );
   return rows.map((r) => r.image_public_id);
 }
 
-async function deleteExpiredMessages() {
+async function deleteExpiredMessages(batchSize = 100) {
   const { rowCount } = await pool.query(
-    `DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()`
+    `DELETE FROM messages
+     WHERE id IN (
+       SELECT id FROM messages
+       WHERE expires_at IS NOT NULL AND expires_at < NOW()
+       LIMIT $1
+     )`,
+    [batchSize]
   );
   return rowCount;
 }
