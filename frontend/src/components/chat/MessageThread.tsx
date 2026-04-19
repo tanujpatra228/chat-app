@@ -40,7 +40,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 200,
+    estimateSize: () => 90, // Realistic estimate accounting for reply previews, timestamps, padding
     getItemKey: (index) => messages[index].stableKey,
     overscan: 10,
   })
@@ -228,7 +228,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
               const message = messages[virtualItem.index]
               return (
                 <div
-                  key={message.tempId || message.id}
+                  key={message.stableKey}
                   data-index={virtualItem.index}
                   ref={virtualizer.measureElement}
                   style={{
@@ -239,15 +239,15 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
                 >
-                  <MessageBubble
-                    message={message}
-                    isMine={message.sender_id === user?.id}
-                    onReply={handleReply}
-                    onScrollToMessage={handleScrollToMessage}
-                    onEdit={handleEdit}
-                    onMeasure={virtualizer.measure}
-                    index={virtualItem.index}
-                  />
+                  <div className="pb-1.5">
+                    <MessageBubble
+                      message={message}
+                      isMine={message.sender_id === user?.id}
+                      onReply={handleReply}
+                      onScrollToMessage={handleScrollToMessage}
+                      onEdit={handleEdit}
+                    />
+                  </div>
                 </div>
               )
             })}

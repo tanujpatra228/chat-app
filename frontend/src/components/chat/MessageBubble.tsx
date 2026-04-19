@@ -10,8 +10,6 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void
   onScrollToMessage?: (messageId: string) => void
   onEdit?: (message: Message) => void
-  onMeasure?: (index: number) => void
-  index: number
 }
 
 const NUDGE_EMOJI = "\u{1F449}"
@@ -23,8 +21,6 @@ export function MessageBubble({
   onReply,
   onScrollToMessage,
   onEdit,
-  onMeasure,
-  index,
 }: MessageBubbleProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const didLongPress = useRef(false)
@@ -81,10 +77,10 @@ export function MessageBubble({
       : (isMine ? "animate-nudge-reverse" : "animate-nudge")
     
     return (
-      <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-1 md:px-4`}>
-        <div className="flex flex-col items-center gap-0.5">
+      <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}>
+        <div className="flex flex-col items-center">
           <span className={`inline-block text-4xl ${animationClass}`}>{nudgeEmoji}</span>
-          <span className="text-muted-foreground text-[10px]">
+          <span className="text-muted-foreground text-[10px] mt-0.5">
             {formatMessageTime(message.created_at)}
           </span>
         </div>
@@ -94,7 +90,7 @@ export function MessageBubble({
 
   if (message.is_deleted) {
     return (
-      <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}>
+      <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}>
         <div className="text-muted-foreground rounded-xl px-3 py-2 text-sm italic">
           Message deleted
         </div>
@@ -105,7 +101,7 @@ export function MessageBubble({
   return (
     <div
       id={`msg-${message.id}`}
-      className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
+      className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}
     >
       {/* Action buttons — left side for own messages (desktop hover) */}
       {isMine && (canReply || canEdit) && (
@@ -124,7 +120,7 @@ export function MessageBubble({
       )}
 
       <div
-        className="flex max-w-[85%] flex-col gap-0.5 select-none sm:max-w-[75%]"
+        className="flex max-w-[85%] flex-col select-none sm:max-w-[75%]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
@@ -133,7 +129,7 @@ export function MessageBubble({
         {message.reply_to_content && (
           <button
             onClick={() => message.reply_to_id && onScrollToMessage?.(message.reply_to_id)}
-            className={`rounded-lg px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80 ${isMine ? "bg-primary/20" : "bg-muted"}`}
+            className={`rounded-lg px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80 mb-1 ${isMine ? "bg-primary/20" : "bg-muted"}`}
           >
             <span className="text-muted-foreground font-medium">
               {message.reply_to_sender_username}
@@ -155,7 +151,11 @@ export function MessageBubble({
                 alt="Shared image"
                 className="max-h-64 w-auto rounded-xl object-cover"
                 loading="lazy"
-                onLoad={() => onMeasure?.(index)}
+                onLoad={() => {
+                  requestAnimationFrame(() => {
+                    window.dispatchEvent(new Event('resize'))
+                  })
+                }}
               />
             </button>
             {lightboxOpen && (
@@ -214,7 +214,7 @@ export function MessageBubble({
 
         {/* Timestamp + status */}
         <div
-          className={`flex items-center gap-1 px-1 ${isMine ? "justify-end" : "justify-start"}`}
+          className={`flex items-center gap-1 px-1 mt-0.5 ${isMine ? "justify-end" : "justify-start"}`}
         >
           {message.is_edited && (
             <span className="text-muted-foreground text-[10px] italic">edited</span>
