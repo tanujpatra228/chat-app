@@ -1,16 +1,16 @@
 import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil } from "lucide-react"
+import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
-import { getSocket } from "@/lib/socket"
-import { useChatStore } from "@/stores/chatStore"
 
 interface MessageBubbleProps {
   message: Message
   isMine: boolean
   onReply?: (message: Message) => void
   onScrollToMessage?: (messageId: string) => void
+  onMeasure?: (index: number) => void
+  index: number
 }
 
 const NUDGE_EMOJI = "\u{1F449}"
@@ -21,83 +21,32 @@ export function MessageBubble({
   isMine,
   onReply,
   onScrollToMessage,
+  onMeasure,
+  index,
 }: MessageBubbleProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const didLongPress = useRef(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editContent, setEditContent] = useState("")
   const [showActions, setShowActions] = useState(false)
-  const editMessage = useChatStore((s) => s.editMessage)
 
   const canReply = !!onReply && !message.tempId && !message.is_deleted
-  const canEdit =
-    isMine &&
-    !message.is_edited &&
-    !message.is_deleted &&
-    !message.tempId &&
-    message.message_type !== "image" &&
-    message.content !== NUDGE_EMOJI
-
-  function startEditing() {
-    setEditContent(message.content)
-    setIsEditing(true)
-  }
-
-  function cancelEditing() {
-    setIsEditing(false)
-    setEditContent("")
-  }
-
-  function submitEdit() {
-    const trimmed = editContent.trim()
-    if (!trimmed || trimmed === message.content) {
-      cancelEditing()
-      return
-    }
-
-    const socket = getSocket()
-    if (socket) {
-      socket.emit(
-        "edit_message",
-        { messageId: message.id, conversationId: message.conversation_id, content: trimmed },
-        (ack: { success: boolean; error?: string }) => {
-          if (ack.success) {
-            editMessage(message.conversation_id, message.id, trimmed)
-          }
-        }
-      )
-    }
-    setIsEditing(false)
-    setEditContent("")
-  }
-
-  function handleEditKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      submitEdit()
-    }
-    if (e.key === "Escape") {
-      cancelEditing()
-    }
-  }
 
   const handleTouchStart = useCallback(() => {
-    if (!canReply && !canEdit) return
+    if (!canReply) return
     didLongPress.current = false
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true
       if (navigator.vibrate) navigator.vibrate(30)
 
       // Own message with edit available: show action menu
-      if (isMine && (canEdit || canReply)) {
+      if (isMine && canReply) {
         setShowActions(true)
       } else if (canReply) {
         // Other's message: reply directly
         onReply?.(message)
       }
     }, LONG_PRESS_MS)
-  }, [canReply, canEdit, isMine, message, onReply])
+  }, [canReply, isMine, message, onReply])
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -144,18 +93,11 @@ export function MessageBubble({
       className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
     >
       {/* Action buttons — left side for own messages (desktop hover) */}
-      {isMine && (canReply || canEdit) && (
+      {isMine && canReply && (
         <div className="mr-1 hidden items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:flex group-hover:opacity-60">
-          {canEdit && (
-            <button onClick={startEditing} className="hover:!opacity-100">
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
-          {canReply && (
-            <button onClick={() => onReply?.(message)} className="hover:!opacity-100">
-              <Reply className="h-4 w-4 text-muted-foreground" />
-            </button>
-          )}
+          <button onClick={() => onReply?.(message)} className="hover:!opacity-100">
+            <Reply className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
       )}
 
@@ -191,6 +133,7 @@ export function MessageBubble({
                 alt="Shared image"
                 className="max-h-64 w-auto rounded-xl object-cover"
                 loading="lazy"
+                onLoad={() => onMeasure?.(index)}
               />
             </button>
             {lightboxOpen && (
@@ -200,34 +143,6 @@ export function MessageBubble({
               />
             )}
           </>
-        ) : isEditing ? (
-          /* Edit mode */
-          <div className={`rounded-xl border-2 border-primary px-3 py-2 ${
-            isMine ? "bg-primary/10" : "bg-muted"
-          }`}>
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              onKeyDown={handleEditKeyDown}
-              autoFocus
-              rows={1}
-              className="w-full resize-none bg-transparent text-sm outline-none"
-            />
-            <div className="mt-1 flex justify-end gap-2">
-              <button
-                onClick={cancelEditing}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitEdit}
-                className="text-xs font-medium text-primary hover:text-primary/80"
-              >
-                Save
-              </button>
-            </div>
-          </div>
         ) : (
           /* Text message */
           <div
@@ -259,18 +174,6 @@ export function MessageBubble({
                 >
                   <Reply className="h-3.5 w-3.5" />
                   Reply
-                </button>
-              )}
-              {canEdit && (
-                <button
-                  onClick={() => {
-                    setShowActions(false)
-                    startEditing()
-                  }}
-                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
                 </button>
               )}
             </div>

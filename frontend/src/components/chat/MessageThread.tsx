@@ -18,7 +18,7 @@ interface MessageThreadProps {
 
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
-  const { setReplyTo, decrementUnread } = useChatStore()
+  const { setReplyTo, decrementUnread, editMessage } = useChatStore()
   const { messages, isLoading, hasMore, loadMore, sendMessage } = useMessages(
     conversation.id
   )
@@ -28,11 +28,13 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const lastTapRef = useRef(0)
   const shouldScrollRef = useRef(true)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null)
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 60,
+    estimateSize: () => 200,
+    getItemKey: (index) => messages[index].stableKey,
     overscan: 10,
   })
 
@@ -107,6 +109,21 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     }
   }, [messages, user, conversation.id])
 
+  // Handle viewport changes (mobile keyboard)
+  useEffect(() => {
+    const handleResize = () => virtualizer.measure()
+    window.addEventListener('resize', handleResize)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+    }
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize)
+      }
+    }
+  }, [virtualizer])
+
   const handleReply = useCallback(
     (message: Message) => {
       setReplyTo({
@@ -117,6 +134,31 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     },
     [setReplyTo]
   )
+
+  // const handleEdit = useCallback((message: Message) => {
+  //   setEditingMessage(message)
+  // }, [])
+
+  const handleSaveEdit = useCallback((content: string) => {
+    if (!editingMessage) return
+    const socket = getSocket()
+    if (socket) {
+      socket.emit(
+        "edit_message",
+        { messageId: editingMessage.id, conversationId: conversation.id, content },
+        (ack: { success: boolean; error?: string }) => {
+          if (ack.success) {
+            editMessage(conversation.id, editingMessage.id, content)
+          }
+        }
+      )
+    }
+    setEditingMessage(null)
+  }, [editingMessage, conversation.id, editMessage])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessage(null)
+  }, [])
 
   const handleScrollToMessage = useCallback(
     (messageId: string) => {
@@ -193,6 +235,8 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
                     isMine={message.sender_id === user?.id}
                     onReply={handleReply}
                     onScrollToMessage={handleScrollToMessage}
+                    onMeasure={virtualizer.measure}
+                    index={virtualItem.index}
                   />
                 </div>
               )
@@ -229,6 +273,10 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         onUploadStart={() => setUploadProgress(0)}
         onUploadProgress={(p) => setUploadProgress(p)}
         onUploadEnd={() => setUploadProgress(null)}
+        mode={editingMessage ? 'edit' : 'send'}
+        editingMessage={editingMessage || undefined}
+        onSaveEdit={handleSaveEdit}
+        onCancelEdit={handleCancelEdit}
       />
     </div>
   )

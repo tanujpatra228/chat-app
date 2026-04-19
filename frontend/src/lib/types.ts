@@ -56,6 +56,7 @@ export interface Message {
   status?: "sending" | "sent" | "failed"
   tempId?: string
   readByOther?: boolean
+  stableKey: string
 }
 
 export interface SearchResult {

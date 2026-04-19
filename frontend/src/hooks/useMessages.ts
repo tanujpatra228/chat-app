@@ -58,7 +58,7 @@ export function useMessages(conversationId: string | null) {
         `/conversations/${conversationId}/messages`
       )
       const reversed = data.messages.reverse()
-      const withReadStatus = applyReadStatus(reversed, user.id, otherLastReadMessageId)
+      const withReadStatus = applyReadStatus(reversed, user.id, otherLastReadMessageId).map(m => ({ ...m, stableKey: m.id }))
       setMessages(conversationId, withReadStatus)
       setHasMore(data.hasMore)
       cursorRef.current = data.nextCursor
@@ -79,7 +79,7 @@ export function useMessages(conversationId: string | null) {
         { params: { cursor: cursorRef.current } }
       )
       const reversed = data.messages.reverse()
-      const withReadStatus = applyReadStatus(reversed, user.id, otherLastReadMessageId)
+      const withReadStatus = applyReadStatus(reversed, user.id, otherLastReadMessageId).map(m => ({ ...m, stableKey: m.id }))
       prependMessages(conversationId, withReadStatus)
       setHasMore(data.hasMore)
       cursorRef.current = data.nextCursor
@@ -110,6 +110,7 @@ export function useMessages(conversationId: string | null) {
         sender_username: user.username,
         sender_display_name: user.displayName,
         status: "sending" as const,
+        stableKey: tempId,
       }
 
       addMessage(conversationId, optimisticMessage)

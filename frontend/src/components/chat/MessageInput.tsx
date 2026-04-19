@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Send, X, ImagePlus, Loader2 } from "lucide-react"
 import { useChatStore } from "@/stores/chatStore"
 import api from "@/lib/api"
+import type { Message } from "@/lib/types"
 
 const DRAFTS_KEY = "chat-drafts"
 const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/jpg,image/gif,image/webp,image/heic,image/heif"
@@ -39,6 +40,10 @@ interface MessageInputProps {
   onUploadProgress?: (percent: number) => void
   onUploadEnd?: () => void
   disabled?: boolean
+  mode?: 'send' | 'edit'
+  editingMessage?: Message | null
+  onSaveEdit?: (content: string) => void
+  onCancelEdit?: () => void
 }
 
 export function MessageInput({
@@ -50,6 +55,10 @@ export function MessageInput({
   onUploadProgress,
   onUploadEnd,
   disabled,
+  mode = 'send',
+  editingMessage,
+  onSaveEdit,
+  onCancelEdit,
 }: MessageInputProps) {
   const [content, setContent] = useState("")
   const [isUploading, setIsUploading] = useState(false)
@@ -59,8 +68,12 @@ export function MessageInput({
 
   // Load draft on conversation change
   useEffect(() => {
-    setContent(loadDraft(conversationId))
-  }, [conversationId])
+    if (mode === 'send') {
+      setContent(loadDraft(conversationId))
+    } else if (mode === 'edit' && editingMessage) {
+      setContent(editingMessage.content)
+    }
+  }, [conversationId, mode, editingMessage])
 
   // Save draft on content change (debounced via conversation switch)
   const saveDraftRef = useRef(content)
@@ -76,15 +89,22 @@ export function MessageInput({
       e.preventDefault()
       const trimmed = content.trim()
       if (!trimmed) return
-      onSend(trimmed, replyTo?.messageId, replyTo?.content, replyTo?.senderUsername)
-      setContent("")
-      saveDraft(conversationId, "")
-      setReplyTo(null)
-      onStopTyping?.()
-      // Re-focus textarea to keep keyboard open on mobile
-      requestAnimationFrame(() => textareaRef.current?.focus())
+
+      if (mode === 'edit') {
+        onSaveEdit?.(trimmed)
+        setContent("")
+        onCancelEdit?.()
+      } else {
+        onSend(trimmed, replyTo?.messageId, replyTo?.content, replyTo?.senderUsername)
+        setContent("")
+        saveDraft(conversationId, "")
+        setReplyTo(null)
+        onStopTyping?.()
+        // Re-focus textarea to keep keyboard open on mobile
+        requestAnimationFrame(() => textareaRef.current?.focus())
+      }
     },
-    [content, conversationId, replyTo, onSend, setReplyTo, onStopTyping]
+    [content, mode, replyTo, onSend, setReplyTo, onStopTyping, onSaveEdit, onCancelEdit, conversationId]
   )
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -144,7 +164,7 @@ export function MessageInput({
   return (
     <div className="border-t">
       {/* Reply preview */}
-      {replyTo && (
+      {replyTo && mode === 'send' && (
         <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2 md:px-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-primary">
@@ -169,49 +189,78 @@ export function MessageInput({
         onSubmit={handleSubmit}
         className="flex items-end gap-1.5 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-4 md:py-3"
       >
-        {/* Image picker */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_IMAGE_TYPES}
-          onChange={handleImageSelect}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          disabled={disabled || isUploading}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {isUploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <ImagePlus className="h-4 w-4" />
-          )}
-        </Button>
+        {/* Image picker - hide in edit mode */}
+        {mode === 'send' && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_IMAGE_TYPES}
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              disabled={disabled || isUploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="h-4 w-4" />
+              )}
+            </Button>
+          </>
+        )}
 
         <textarea
           ref={textareaRef}
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={mode === 'edit' ? "Edit message..." : "Type a message..."}
           disabled={disabled || isUploading}
           rows={1}
           className="bg-muted flex-1 resize-none rounded-xl px-3 py-2 text-sm outline-none placeholder:text-muted-foreground md:px-4 md:py-2.5"
         />
-        <Button
-          type="submit"
-          size="icon"
-          tabIndex={-1}
-          onMouseDown={(e) => e.preventDefault()}
-          disabled={disabled || isUploading || !content.trim()}
-          className="h-9 w-9 shrink-0 rounded-full"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {mode === 'edit' ? (
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setContent("")
+                onCancelEdit?.()
+              }}
+              className="h-9 px-3"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!content.trim() || content.trim() === editingMessage?.content}
+              className="h-9 px-3"
+            >
+              Save
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="submit"
+            size="icon"
+            tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={disabled || isUploading || !content.trim()}
+            className="h-9 w-9 shrink-0 rounded-full"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </form>
     </div>
   )

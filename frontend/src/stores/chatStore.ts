@@ -78,6 +78,7 @@ export const useChatStore = create<ChatState>((set) => ({
               ? {
                   ...m,
                   ...message,
+                  stableKey: m.stableKey,
                   tempId: undefined,
                   sender_username: message.sender_username || m.sender_username,
                   sender_display_name: message.sender_display_name || m.sender_display_name,
