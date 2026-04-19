@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Send, X, ImagePlus, Loader2 } from "lucide-react"
+import { Send, X, ImagePlus, Loader2, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chatStore"
 import api from "@/lib/api"
 import type { Message } from "@/lib/types"
@@ -238,7 +238,7 @@ export function MessageInput({
               }}
               className="h-9 px-3"
             >
-              Cancel
+              <X />
             </Button>
             <Button
               type="submit"
@@ -246,7 +246,7 @@ export function MessageInput({
               disabled={!content.trim() || content.trim() === editingMessage?.content}
               className="h-9 px-3"
             >
-              Save
+              <Check />
             </Button>
           </div>
         ) : (

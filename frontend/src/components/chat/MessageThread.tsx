@@ -135,9 +135,9 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     [setReplyTo]
   )
 
-  // const handleEdit = useCallback((message: Message) => {
-  //   setEditingMessage(message)
-  // }, [])
+  const handleEdit = useCallback((message: Message) => {
+    setEditingMessage(message)
+  }, [])
 
   const handleSaveEdit = useCallback((content: string) => {
     if (!editingMessage) return
@@ -235,6 +235,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
                     isMine={message.sender_id === user?.id}
                     onReply={handleReply}
                     onScrollToMessage={handleScrollToMessage}
+                    onEdit={handleEdit}
                     onMeasure={virtualizer.measure}
                     index={virtualItem.index}
                   />

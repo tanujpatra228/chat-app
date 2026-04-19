@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check, CheckCheck, Reply } from "lucide-react"
+import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
 
 interface MessageBubbleProps {
@@ -9,6 +9,7 @@ interface MessageBubbleProps {
   isMine: boolean
   onReply?: (message: Message) => void
   onScrollToMessage?: (messageId: string) => void
+  onEdit?: (message: Message) => void
   onMeasure?: (index: number) => void
   index: number
 }
@@ -21,6 +22,7 @@ export function MessageBubble({
   isMine,
   onReply,
   onScrollToMessage,
+  onEdit,
   onMeasure,
   index,
 }: MessageBubbleProps) {
@@ -30,23 +32,30 @@ export function MessageBubble({
   const [showActions, setShowActions] = useState(false)
 
   const canReply = !!onReply && !message.tempId && !message.is_deleted
+  const canEdit =
+    isMine &&
+    !!onEdit &&
+    !message.is_deleted &&
+    !message.tempId &&
+    message.message_type !== "image" &&
+    message.content !== NUDGE_EMOJI
 
   const handleTouchStart = useCallback(() => {
-    if (!canReply) return
+    if (!canReply && !canEdit) return
     didLongPress.current = false
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true
       if (navigator.vibrate) navigator.vibrate(30)
 
       // Own message with edit available: show action menu
-      if (isMine && canReply) {
+      if (isMine && (canReply || canEdit)) {
         setShowActions(true)
       } else if (canReply) {
         // Other's message: reply directly
         onReply?.(message)
       }
     }, LONG_PRESS_MS)
-  }, [canReply, isMine, message, onReply])
+  }, [canReply, canEdit, isMine, message, onReply])
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -93,11 +102,18 @@ export function MessageBubble({
       className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 py-0.5 md:px-4`}
     >
       {/* Action buttons — left side for own messages (desktop hover) */}
-      {isMine && canReply && (
+      {isMine && (canReply || canEdit) && (
         <div className="mr-1 hidden items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:flex group-hover:opacity-60">
-          <button onClick={() => onReply?.(message)} className="hover:!opacity-100">
-            <Reply className="h-4 w-4 text-muted-foreground" />
-          </button>
+          {canEdit && (
+            <button onClick={() => onEdit?.(message)} className="hover:!opacity-100">
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+          {canReply && (
+            <button onClick={() => onReply?.(message)} className="hover:!opacity-100">
+              <Reply className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
       )}
 
@@ -173,7 +189,17 @@ export function MessageBubble({
                   className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
                 >
                   <Reply className="h-3.5 w-3.5" />
-                  Reply
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  onClick={() => {
+                    setShowActions(false)
+                    onEdit?.(message)
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
