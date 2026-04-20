@@ -37,7 +37,7 @@ export function useSocket() {
       conversationId: string
       message: Message
     }) => {
-      addMessage(conversationId, { ...message, status: "sent" })
+      addMessage(conversationId, { ...message, status: "sent", stableKey: message.id })
       updateConversationLastMessage(conversationId, message)
       // Clear typing when a message arrives from that user
       clearTypingUser(conversationId, message.sender_id)

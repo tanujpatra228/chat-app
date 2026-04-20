@@ -120,7 +120,7 @@ export function MessageBubble({
       )}
 
       <div
-        className="flex max-w-[85%] flex-col select-none sm:max-w-[75%]"
+        className="relative flex max-w-[85%] flex-col select-none sm:max-w-[75%]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
@@ -185,7 +185,7 @@ export function MessageBubble({
               className="fixed inset-0 z-40"
               onClick={() => setShowActions(false)}
             />
-            <div className={`z-50 flex gap-1 rounded-lg border bg-popover p-1 shadow-lg ${isMine ? "self-end" : "self-start"}`}>
+            <div className={`absolute -top-9 z-50 flex gap-1 rounded-lg border bg-popover p-1 shadow-lg ${isMine ? "right-0" : "left-0"}`}>
               {canReply && (
                 <button
                   onClick={() => {
