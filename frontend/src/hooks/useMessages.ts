@@ -126,7 +126,12 @@ export function useMessages(conversationId: string | null) {
 
       socket.emit(
         "send_message",
-        { conversationId, content: isNudge ? (nudgeType === "heart" ? "♥️" : "👉") : content, nudgeType },
+        {
+          conversationId,
+          content: isNudge ? (nudgeType === "heart" ? "♥️" : "👉") : content,
+          replyToId,
+          nudgeType,
+        },
         (ack: { success: boolean; message?: any; error?: string }) => {
           if (ack.success && ack.message) {
             replaceMessage(conversationId, tempId, ack.message)
