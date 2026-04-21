@@ -3,6 +3,8 @@ import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
 import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
+import { LinkPreview } from "./LinkPreview"
+import { linkifyText } from "@/utils/linkify"
 
 interface MessageBubbleProps {
   message: Message
@@ -174,7 +176,18 @@ export function MessageBubble({
                 : "bg-muted text-foreground"
             }`}
           >
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words">
+              {linkifyText(message.content)}
+            </p>
+            {message.link_url && (
+              <LinkPreview
+                url={message.link_url}
+                title={message.link_title}
+                description={message.link_description}
+                image={message.link_image}
+                isMine={isMine}
+              />
+            )}
           </div>
         )}
 

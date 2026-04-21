@@ -52,6 +52,10 @@ export interface Message {
   nudge_type?: "point" | "heart"
   image_url?: string | null
   image_public_id?: string | null
+  link_url?: string | null
+  link_title?: string | null
+  link_description?: string | null
+  link_image?: string | null
   expires_at?: string | null
   // Client-side only
   status?: "sending" | "sent" | "failed"

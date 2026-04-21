@@ -143,6 +143,23 @@ async function softDelete(messageId) {
   return rows[0];
 }
 
+async function updateLinkPreview(messageId, preview) {
+  const { rows } = await pool.query(
+    `UPDATE messages
+     SET link_url = $2, link_title = $3, link_description = $4, link_image = $5
+     WHERE id = $1
+     RETURNING id, conversation_id, link_url, link_title, link_description, link_image`,
+    [
+      messageId,
+      preview.url,
+      preview.title,
+      preview.description,
+      preview.image,
+    ]
+  );
+  return rows[0];
+}
+
 async function getExpiredImagePublicIds(batchSize = 100) {
   const { rows } = await pool.query(
     `SELECT image_public_id FROM messages
@@ -207,6 +224,7 @@ module.exports = {
   getMessages,
   findById,
   editMessage,
+  updateLinkPreview,
   softDelete,
   getExpiredImagePublicIds,
   deleteExpiredMessages,

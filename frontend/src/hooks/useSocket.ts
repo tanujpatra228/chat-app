@@ -18,6 +18,7 @@ export function useSocket() {
     markMessagesRead,
     updateVanishingMode,
     editMessage,
+    updateMessageLinkPreview,
   } = useChatStore()
 
   // Use ref to avoid stale closure for activeConversationId
@@ -139,6 +140,31 @@ export function useSocket() {
     socket.on("vanishing_mode_changed", handleVanishingModeChanged)
     socket.on("message_edited", handleMessageEdited)
 
+    const handleMessageUpdated = ({
+      conversationId,
+      messageId,
+      linkUrl,
+      linkTitle,
+      linkDescription,
+      linkImage,
+    }: {
+      conversationId: string
+      messageId: string
+      linkUrl: string
+      linkTitle: string | null
+      linkDescription: string | null
+      linkImage: string | null
+    }) => {
+      updateMessageLinkPreview(conversationId, messageId, {
+        url: linkUrl,
+        title: linkTitle,
+        description: linkDescription,
+        image: linkImage,
+      })
+    }
+
+    socket.on("message_updated", handleMessageUpdated)
+
     return () => {
       socket.off("new_message", handleNewMessage)
       socket.off("message_deleted", handleMessageDeleted)
@@ -149,6 +175,7 @@ export function useSocket() {
       socket.off("messages_read", handleMessagesRead)
       socket.off("vanishing_mode_changed", handleVanishingModeChanged)
       socket.off("message_edited", handleMessageEdited)
+      socket.off("message_updated", handleMessageUpdated)
     }
   }, [
     isAuthenticated,
@@ -162,5 +189,6 @@ export function useSocket() {
     markMessagesRead,
     updateVanishingMode,
     editMessage,
+    updateMessageLinkPreview,
   ])
 }

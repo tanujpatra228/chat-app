@@ -40,6 +40,11 @@ interface ChatState {
   markMessagesRead: (conversationId: string, upToMessageId: string) => void
   updateVanishingMode: (conversationId: string, vanishingMode: boolean, durationHours: number | null) => void
   editMessage: (conversationId: string, messageId: string, newContent: string) => void
+  updateMessageLinkPreview: (
+    conversationId: string,
+    messageId: string,
+    preview: { url: string; title: string | null; description: string | null; image: string | null }
+  ) => void
 }
 
 const TYPING_EXPIRY_MS = 4000
@@ -263,6 +268,27 @@ export const useChatStore = create<ChatState>((set) => ({
           [conversationId]: existing.map((m) =>
             m.id === messageId
               ? { ...m, content: newContent, is_edited: true }
+              : m
+          ),
+        },
+      }
+    }),
+
+  updateMessageLinkPreview: (conversationId, messageId, preview) =>
+    set((state) => {
+      const existing = state.messages[conversationId] || []
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: existing.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  link_url: preview.url,
+                  link_title: preview.title,
+                  link_description: preview.description,
+                  link_image: preview.image,
+                }
               : m
           ),
         },

@@ -1,4 +1,28 @@
 const messageService = require("../../services/message.service");
+const messageRepo = require("../../repositories/message.repository");
+const { extractFirstUrl, fetchPreview } = require("../../services/link-preview.service");
+
+async function processLinkPreview(io, message) {
+  if (message.message_type !== "text" || !message.content) return;
+
+  const url = extractFirstUrl(message.content);
+  if (!url) return;
+
+  const preview = await fetchPreview(url);
+  if (!preview || (!preview.title && !preview.image)) return;
+
+  const updated = await messageRepo.updateLinkPreview(message.id, preview);
+  if (!updated) return;
+
+  io.to(updated.conversation_id).emit("message_updated", {
+    conversationId: updated.conversation_id,
+    messageId: updated.id,
+    linkUrl: updated.link_url,
+    linkTitle: updated.link_title,
+    linkDescription: updated.link_description,
+    linkImage: updated.link_image,
+  });
+}
 
 function registerMessageHandlers(io, socket) {
   socket.on("send_message", async (data, ack) => {
@@ -28,6 +52,11 @@ function registerMessageHandlers(io, socket) {
       if (typeof ack === "function") {
         ack({ success: true, message: messageWithUsername });
       }
+
+      // Fire-and-forget link preview fetch
+      processLinkPreview(io, message).catch((err) =>
+        console.error("Link preview failed:", err.message)
+      );
     } catch (err) {
       if (typeof ack === "function") {
         ack({ success: false, error: err.message });
