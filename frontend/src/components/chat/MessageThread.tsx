@@ -1,5 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { useEffect, useRef, useCallback, useState, useLayoutEffect } from "react"
 import { Loader2, ImageUp } from "lucide-react"
 import { ChatHeader } from "./ChatHeader"
 import { MessageBubble } from "./MessageBubble"
@@ -17,6 +16,8 @@ interface MessageThreadProps {
 }
 
 const defaultNudgeType = import.meta.env.VITE_DEFAULT_NUDGE_TYPE === "heart" ? "heart" : "point"
+const SCROLL_BOTTOM_THRESHOLD_PX = 120
+const LOAD_MORE_THRESHOLD_PX = 200
 
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
@@ -26,24 +27,21 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   )
   const { emitTypingStart, stopTyping, typingUsers } = useTyping(conversation.id)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const prevMessageCountRef = useRef(0)
   const lastTapRef = useRef(0)
   const shouldScrollRef = useRef(true)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
   const [nudgeType, setNudgeType] = useState<"point" | "heart">(defaultNudgeType)
 
+  // Track for scroll-position preservation on prepend (older messages)
+  const prevFirstIdRef = useRef<string | null>(null)
+  const prevMessageCountRef = useRef(0)
+  const savedScrollHeightRef = useRef(0)
+  const didInitialScrollRef = useRef(false)
+
   const toggleNudgeType = useCallback(() => {
     setNudgeType(prev => prev === "point" ? "heart" : "point")
   }, [])
-
-  const virtualizer = useVirtualizer({
-    count: messages.length,
-    getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 90, // Realistic estimate accounting for reply previews, timestamps, padding
-    getItemKey: (index) => messages[index].stableKey,
-    overscan: 10,
-  })
 
   const handleDoubleTap = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
@@ -61,17 +59,52 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     [sendMessage, nudgeType]
   )
 
-  // Scroll to bottom on new messages (only if user was already at bottom)
-  useEffect(() => {
-    if (messages.length > prevMessageCountRef.current && shouldScrollRef.current) {
-      requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: "end" })
-      })
-    }
-    prevMessageCountRef.current = messages.length
-  }, [messages.length, virtualizer])
+  // Before the DOM updates with new prepended items, save scrollHeight so we can offset
+  // We do this inside handleScroll's loadMore trigger — see below
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
 
-  // Track scroll position: auto-scroll flag + infinite scroll upward
+    const currentFirstId = messages[0]?.id ?? null
+    const prevFirstId = prevFirstIdRef.current
+    const prevCount = prevMessageCountRef.current
+
+    // Initial load: scroll to bottom once
+    if (!didInitialScrollRef.current && messages.length > 0) {
+      container.scrollTop = container.scrollHeight
+      didInitialScrollRef.current = true
+      prevFirstIdRef.current = currentFirstId
+      prevMessageCountRef.current = messages.length
+      return
+    }
+
+    // Prepend detected: first message id changed AND count grew
+    if (
+      prevFirstId &&
+      currentFirstId &&
+      prevFirstId !== currentFirstId &&
+      messages.length > prevCount
+    ) {
+      const diff = container.scrollHeight - savedScrollHeightRef.current
+      container.scrollTop += diff
+    } else if (messages.length > prevCount && shouldScrollRef.current) {
+      // Append: scroll to bottom if user was near bottom
+      container.scrollTop = container.scrollHeight
+    }
+
+    prevFirstIdRef.current = currentFirstId
+    prevMessageCountRef.current = messages.length
+  }, [messages])
+
+  // Reset on conversation change
+  useEffect(() => {
+    didInitialScrollRef.current = false
+    prevFirstIdRef.current = null
+    prevMessageCountRef.current = 0
+    shouldScrollRef.current = true
+  }, [conversation.id])
+
+  // Scroll listener: track near-bottom flag, auto-load more on near-top
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
@@ -79,10 +112,11 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     function handleScroll() {
       if (!container) return
       const { scrollTop, scrollHeight, clientHeight } = container
-      shouldScrollRef.current = scrollHeight - scrollTop - clientHeight < 100
+      shouldScrollRef.current =
+        scrollHeight - scrollTop - clientHeight < SCROLL_BOTTOM_THRESHOLD_PX
 
-      // Auto-load earlier messages when scrolled near the top
-      if (scrollTop < 100 && hasMore && !isLoading) {
+      if (scrollTop < LOAD_MORE_THRESHOLD_PX && hasMore && !isLoading) {
+        savedScrollHeightRef.current = scrollHeight
         loadMore()
       }
     }
@@ -100,7 +134,6 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   useEffect(() => {
     if (!messages.length || !user) return
 
-    // Find the last message from the other user
     const lastOtherMessage = [...messages]
       .reverse()
       .find((m) => m.sender_id !== user.id && !m.tempId)
@@ -115,21 +148,6 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
       })
     }
   }, [messages, user, conversation.id])
-
-  // Handle viewport changes (mobile keyboard)
-  useEffect(() => {
-    const handleResize = () => virtualizer.measure()
-    window.addEventListener('resize', handleResize)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize)
-    }
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize)
-      }
-    }
-  }, [virtualizer])
 
   const handleReply = useCallback(
     (message: Message) => {
@@ -167,25 +185,14 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     setEditingMessage(null)
   }, [])
 
-  const handleScrollToMessage = useCallback(
-    (messageId: string) => {
-      const index = messages.findIndex((m) => m.id === messageId)
-      if (index !== -1) {
-        virtualizer.scrollToIndex(index, { align: "center" })
-        // Highlight after scroll
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            const el = document.getElementById(`msg-${messageId}`)
-            if (el) {
-              el.classList.add("bg-accent/50")
-              setTimeout(() => el.classList.remove("bg-accent/50"), 1500)
-            }
-          }, 100)
-        })
-      }
-    },
-    [messages, virtualizer]
-  )
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      el.classList.add("bg-accent/50")
+      setTimeout(() => el.classList.remove("bg-accent/50"), 1500)
+    }
+  }, [])
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -216,43 +223,17 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
           </div>
         )}
 
-        {messages.length > 0 && (
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const message = messages[virtualItem.index]
-              return (
-                <div
-                  key={message.stableKey}
-                  data-index={virtualItem.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                >
-                  <div className="pb-1.5">
-                    <MessageBubble
-                      message={message}
-                      isMine={message.sender_id === user?.id}
-                      onReply={handleReply}
-                      onScrollToMessage={handleScrollToMessage}
-                      onEdit={handleEdit}
-                    />
-                  </div>
-                </div>
-              )
-            })}
+        {messages.map((message) => (
+          <div key={message.stableKey} className="pb-1.5">
+            <MessageBubble
+              message={message}
+              isMine={message.sender_id === user?.id}
+              onReply={handleReply}
+              onScrollToMessage={handleScrollToMessage}
+              onEdit={handleEdit}
+            />
           </div>
-        )}
+        ))}
 
         {/* Upload progress bubble */}
         {uploadProgress !== null && (
@@ -273,6 +254,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
             </div>
           </div>
         )}
+
       </div>
 
       <MessageInput
