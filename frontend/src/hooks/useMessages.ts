@@ -35,6 +35,7 @@ export function useMessages(conversationId: string | null) {
   const {
     messages,
     conversations,
+    reconnectNonce,
     setMessages,
     prependMessages,
     addMessage,
@@ -148,7 +149,7 @@ export function useMessages(conversationId: string | null) {
     if (conversationId) {
       fetchMessages()
     }
-  }, [conversationId, fetchMessages])
+  }, [conversationId, fetchMessages, reconnectNonce])
 
   return {
     messages: conversationMessages,

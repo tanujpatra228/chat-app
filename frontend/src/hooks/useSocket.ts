@@ -19,6 +19,7 @@ export function useSocket() {
     updateVanishingMode,
     editMessage,
     updateMessageLinkPreview,
+    bumpReconnectNonce,
   } = useChatStore()
 
   // Use ref to avoid stale closure for activeConversationId
@@ -165,6 +166,23 @@ export function useSocket() {
 
     socket.on("message_updated", handleMessageUpdated)
 
+    const handleReconnect = () => {
+      bumpReconnectNonce()
+    }
+    socket.io.on("reconnect", handleReconnect)
+
+    const ensureConnected = () => {
+      if (!socket.connected) {
+        socket.connect()
+      }
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") ensureConnected()
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    window.addEventListener("online", ensureConnected)
+    window.addEventListener("focus", ensureConnected)
+
     return () => {
       socket.off("new_message", handleNewMessage)
       socket.off("message_deleted", handleMessageDeleted)
@@ -176,6 +194,10 @@ export function useSocket() {
       socket.off("vanishing_mode_changed", handleVanishingModeChanged)
       socket.off("message_edited", handleMessageEdited)
       socket.off("message_updated", handleMessageUpdated)
+      socket.io.off("reconnect", handleReconnect)
+      document.removeEventListener("visibilitychange", handleVisibility)
+      window.removeEventListener("online", ensureConnected)
+      window.removeEventListener("focus", ensureConnected)
     }
   }, [
     isAuthenticated,
@@ -190,5 +212,6 @@ export function useSocket() {
     updateVanishingMode,
     editMessage,
     updateMessageLinkPreview,
+    bumpReconnectNonce,
   ])
 }

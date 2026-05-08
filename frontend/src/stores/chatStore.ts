@@ -20,7 +20,9 @@ interface ChatState {
   typingUsers: Record<string, TypingUser[]>
   replyTo: ReplyTo | null
   lastReadMessageIds: Record<string, string>
+  reconnectNonce: number
 
+  bumpReconnectNonce: () => void
   setConversations: (conversations: Conversation[]) => void
   setActiveConversation: (id: string | null) => void
   addMessage: (conversationId: string, message: Message) => void
@@ -56,6 +58,10 @@ export const useChatStore = create<ChatState>((set) => ({
   typingUsers: {},
   replyTo: null,
   lastReadMessageIds: {},
+  reconnectNonce: 0,
+
+  bumpReconnectNonce: () =>
+    set((state) => ({ reconnectNonce: state.reconnectNonce + 1 })),
 
   setConversations: (conversations) => set({ conversations }),
 

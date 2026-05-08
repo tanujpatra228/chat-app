@@ -17,7 +17,7 @@ export function connectSocket(token: string): Socket {
     auth: { token },
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 30000,
   })
