@@ -39,6 +39,26 @@ async function createMessage({ conversationId, senderId, content, replyToId, exp
   const message = rows[0];
   message.content = content;
 
+  if (replyToId) {
+    const { rows: replyRows } = await pool.query(
+      `SELECT rm.content, rm.encrypted_content, rm.iv, rm.auth_tag, rm.sender_id, ru.username AS sender_username
+       FROM messages rm
+       JOIN users ru ON ru.id = rm.sender_id
+       WHERE rm.id = $1`,
+      [replyToId]
+    );
+    if (replyRows[0]) {
+      const r = replyRows[0];
+      let replyContent = r.content;
+      if (isEnabled() && r.iv && r.auth_tag) {
+        replyContent = decrypt(r.encrypted_content || r.content, r.iv, r.auth_tag);
+      }
+      message.reply_to_content = replyContent;
+      message.reply_to_sender_id = r.sender_id;
+      message.reply_to_sender_username = r.sender_username;
+    }
+  }
+
   await pool.query(
     `UPDATE conversations SET updated_at = NOW() WHERE id = $1`,
     [conversationId]
