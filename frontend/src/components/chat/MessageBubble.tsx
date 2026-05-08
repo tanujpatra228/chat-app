@@ -131,7 +131,7 @@ export function MessageBubble({
         {message.reply_to_content && (
           <button
             onClick={() => message.reply_to_id && onScrollToMessage?.(message.reply_to_id)}
-            className={`rounded-lg px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80 mb-1 ${isMine ? "bg-primary/20" : "bg-muted"}`}
+            className={`rounded-xl px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80 mb-1 ${isMine ? "bg-white/25 text-white" : "bg-black/5"}`}
           >
             <span className="text-muted-foreground font-medium">
               {message.reply_to_sender_username}
@@ -170,10 +170,8 @@ export function MessageBubble({
         ) : (
           /* Text message */
           <div
-            className={`rounded-xl px-3 py-2 text-sm md:px-4 ${
-              isMine
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-foreground"
+            className={`rounded-2xl px-4 py-2.5 text-sm md:px-4 shadow-md ${
+              isMine ? "bubble-mine" : "bubble-other"
             }`}
           >
             <p className="whitespace-pre-wrap break-words">

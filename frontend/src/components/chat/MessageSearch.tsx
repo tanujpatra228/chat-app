@@ -51,7 +51,7 @@ export function MessageSearch({ onSelectResult, onClose }: MessageSearchProps) {
   }, [query])
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background/55 backdrop-blur-sm">
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <Input

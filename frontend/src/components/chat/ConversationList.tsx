@@ -61,7 +61,7 @@ export function ConversationList({
   }
 
   return (
-    <div className="flex h-full flex-col bg-background md:border-r">
+    <div className="flex h-full flex-col bg-sidebar/70 backdrop-blur-sm md:border-r">
       {/* Header */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b px-4 pt-[env(safe-area-inset-top)]">
         <div className="min-w-0">
