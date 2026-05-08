@@ -175,7 +175,7 @@ export function MessageBubble({
             }`}
           >
             <p className="whitespace-pre-wrap break-words">
-              {linkifyText(message.content)}
+              {linkifyText(message.content, isMine)}
             </p>
             {message.link_url && (
               <LinkPreview
