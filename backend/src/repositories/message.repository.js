@@ -93,6 +93,7 @@ async function getMessages(conversationId, { limit, cursor }) {
      LEFT JOIN messages rm ON rm.id = m.reply_to_id
      LEFT JOIN users ru ON ru.id = rm.sender_id
      WHERE m.conversation_id = $1 ${cursorClause}
+       AND (m.expires_at IS NULL OR m.expires_at > NOW())
      ORDER BY m.created_at DESC
      LIMIT $2`,
     params
@@ -192,16 +193,17 @@ async function getExpiredImagePublicIds(batchSize = 100) {
 }
 
 async function deleteExpiredMessages(batchSize = 100) {
-  const { rowCount } = await pool.query(
+  const { rows } = await pool.query(
     `DELETE FROM messages
      WHERE id IN (
        SELECT id FROM messages
        WHERE expires_at IS NOT NULL AND expires_at < NOW()
        LIMIT $1
-     )`,
+     )
+     RETURNING id, conversation_id`,
     [batchSize]
   );
-  return rowCount;
+  return rows;
 }
 
 async function searchMessages(query, userId, limit = 20) {

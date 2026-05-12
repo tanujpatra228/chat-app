@@ -50,7 +50,7 @@ const io = initializeSocket(server);
 app.set("io", io);
 
 // Start background jobs
-const stopCleanupJob = startCleanupJob();
+const stopCleanupJob = startCleanupJob(io);
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {

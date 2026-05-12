@@ -31,6 +31,7 @@ interface ChatState {
   setMessages: (conversationId: string, messages: Message[]) => void
   prependMessages: (conversationId: string, messages: Message[]) => void
   deleteMessage: (conversationId: string, messageId: string) => void
+  removeMessages: (conversationId: string, ids: string[]) => void
   updateConversationLastMessage: (conversationId: string, message: Message) => void
   decrementUnread: (conversationId: string) => void
   incrementUnread: (conversationId: string) => void
@@ -144,6 +145,37 @@ export const useChatStore = create<ChatState>((set) => ({
               : m
           ),
         },
+      }
+    }),
+
+  removeMessages: (conversationId, ids) =>
+    set((state) => {
+      const idSet = new Set(ids)
+      const existing = state.messages[conversationId] || []
+      const remaining = existing.filter((m) => !idSet.has(m.id))
+
+      const conv = state.conversations.find((c) => c.id === conversationId)
+      let conversations = state.conversations
+      if (conv && conv.last_message_id && idSet.has(conv.last_message_id)) {
+        const visible = remaining.filter((m) => !m.is_deleted)
+        const last = visible[visible.length - 1]
+        conversations = state.conversations.map((c) =>
+          c.id === conversationId
+            ? {
+                ...c,
+                last_message_id: last?.id ?? null,
+                last_message_content: last?.content ?? null,
+                last_message_sender_id: last?.sender_id ?? null,
+                last_message_at: last?.created_at ?? null,
+                last_message_is_deleted: last?.is_deleted ?? null,
+              }
+            : c
+        )
+      }
+
+      return {
+        messages: { ...state.messages, [conversationId]: remaining },
+        conversations,
       }
     }),
 

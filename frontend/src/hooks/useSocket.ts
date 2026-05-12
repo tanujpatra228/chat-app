@@ -10,6 +10,7 @@ export function useSocket() {
     activeConversationId,
     addMessage,
     deleteMessage,
+    removeMessages,
     updateConversationLastMessage,
     incrementUnread,
     updateUserOnlineStatus,
@@ -166,6 +167,17 @@ export function useSocket() {
 
     socket.on("message_updated", handleMessageUpdated)
 
+    const handleMessagesExpired = ({
+      conversationId,
+      ids,
+    }: {
+      conversationId: string
+      ids: string[]
+    }) => {
+      removeMessages(conversationId, ids)
+    }
+    socket.on("messages_expired", handleMessagesExpired)
+
     const handleReconnect = () => {
       bumpReconnectNonce()
     }
@@ -194,6 +206,7 @@ export function useSocket() {
       socket.off("vanishing_mode_changed", handleVanishingModeChanged)
       socket.off("message_edited", handleMessageEdited)
       socket.off("message_updated", handleMessageUpdated)
+      socket.off("messages_expired", handleMessagesExpired)
       socket.io.off("reconnect", handleReconnect)
       document.removeEventListener("visibilitychange", handleVisibility)
       window.removeEventListener("online", ensureConnected)
@@ -203,6 +216,7 @@ export function useSocket() {
     isAuthenticated,
     addMessage,
     deleteMessage,
+    removeMessages,
     updateConversationLastMessage,
     incrementUnread,
     updateUserOnlineStatus,
