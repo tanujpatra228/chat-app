@@ -30,6 +30,7 @@ export interface Conversation {
   unread_count: number
   vanishing_mode: boolean
   vanishing_duration_hours: number | null
+  saved_link: string | null
 }
 
 export interface Message {

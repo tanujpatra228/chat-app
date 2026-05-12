@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/users/UserAvatar"
 import { VanishingToggle } from "./VanishingToggle"
 import { NudgeToggle } from "./NudgeToggle"
+import { MeetLinkButton } from "./MeetLinkButton"
 import { formatLastSeen } from "@/utils/formatDate"
 import type { Conversation } from "@/lib/types"
 
@@ -62,6 +63,10 @@ export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, 
       {nudgeType && onNudgeToggle && (
         <NudgeToggle nudgeType={nudgeType} onToggle={onNudgeToggle} />
       )}
+      <MeetLinkButton
+        conversationId={conversation.id}
+        savedLink={conversation.saved_link}
+      />
     </div>
   )
 }

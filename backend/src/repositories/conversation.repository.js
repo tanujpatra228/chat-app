@@ -45,6 +45,7 @@ async function getUserConversations(userId) {
        c.id,
        c.vanishing_mode,
        c.vanishing_duration_hours,
+       c.saved_link,
        c.created_at,
        c.updated_at,
        u.id AS other_user_id,
@@ -132,6 +133,15 @@ async function updateLastReadMessage(conversationId, userId, messageId) {
   );
 }
 
+async function updateSavedLink(conversationId, url) {
+  const { rows } = await pool.query(
+    `UPDATE conversations SET saved_link = $2, updated_at = NOW()
+     WHERE id = $1 RETURNING id, saved_link`,
+    [conversationId, url || null]
+  );
+  return rows[0];
+}
+
 module.exports = {
   findConversationBetween,
   createConversation,
@@ -141,4 +151,5 @@ module.exports = {
   getParticipantIds,
   updateLastReadMessage,
   updateVanishingMode,
+  updateSavedLink,
 };

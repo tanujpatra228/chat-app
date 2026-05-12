@@ -77,6 +77,20 @@ router.put("/:id/vanishing", async (req, res, next) => {
   }
 });
 
+router.patch("/:id/saved-link", async (req, res, next) => {
+  try {
+    await conversationService.verifyParticipant(req.params.id, req.user.userId);
+    const conversationRepo = require("../repositories/conversation.repository");
+    const result = await conversationRepo.updateSavedLink(
+      req.params.id,
+      req.body.url || null
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/search/messages", async (req, res, next) => {
   try {
     const results = await messageService.searchMessages(
