@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,7 +16,7 @@ interface MeetLinkButtonProps {
   savedLink: string | null
 }
 
-const DOUBLE_CLICK_MS = 300
+const LONG_PRESS_MS = 500
 
 // Google Meet icon SVG
 function MeetIcon({ className }: { className?: string }) {
@@ -39,32 +39,33 @@ export function MeetLinkButton({ conversationId, savedLink }: MeetLinkButtonProp
   const [modalOpen, setModalOpen] = useState(false)
   const [urlInput, setUrlInput] = useState("")
   const [saving, setSaving] = useState(false)
-  const lastClickRef = useRef(0)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const updateConversationSavedLink = useChatStore((s) => s.updateConversationSavedLink)
 
   useEffect(() => {
     if (modalOpen) setUrlInput(savedLink || "")
   }, [modalOpen, savedLink])
 
-  function handleClick() {
-    const now = Date.now()
-    if (now - lastClickRef.current < DOUBLE_CLICK_MS) {
-      // Double click → open edit modal
-      lastClickRef.current = 0
+  const handleTouchStart = useCallback(() => {
+    longPressTimer.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(30)
       setModalOpen(true)
+    }, LONG_PRESS_MS)
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  function handleClick() {
+    // Single tap → open URL (or edit modal if none set)
+    if (savedLink) {
+      window.open(savedLink, "_blank", "noopener,noreferrer")
     } else {
-      lastClickRef.current = now
-      // Single click — wait to see if double follows
-      setTimeout(() => {
-        if (lastClickRef.current === now) {
-          // Still single → open link or modal if none set
-          if (savedLink) {
-            window.open(savedLink, "_blank", "noopener,noreferrer")
-          } else {
-            setModalOpen(true)
-          }
-        }
-      }, DOUBLE_CLICK_MS + 10)
+      setModalOpen(true)
     }
   }
 
@@ -91,6 +92,9 @@ export function MeetLinkButton({ conversationId, savedLink }: MeetLinkButtonProp
         size="icon"
         className={`h-8 w-8 shrink-0 ${savedLink ? "text-green-500" : "text-muted-foreground"}`}
         onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchEnd}
         title={savedLink ? `Open: ${savedLink}` : "Set meeting link"}
       >
         <MeetIcon className="h-4 w-4" />
