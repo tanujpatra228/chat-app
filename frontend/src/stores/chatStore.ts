@@ -28,6 +28,7 @@ interface ChatState {
   addMessage: (conversationId: string, message: Message) => void
   replaceMessage: (conversationId: string, tempId: string, message: Message) => void
   markMessageFailed: (conversationId: string, tempId: string) => void
+  setMessageSending: (conversationId: string, tempId: string) => void
   setMessages: (conversationId: string, messages: Message[]) => void
   prependMessages: (conversationId: string, messages: Message[]) => void
   deleteMessage: (conversationId: string, messageId: string) => void
@@ -113,6 +114,19 @@ export const useChatStore = create<ChatState>((set) => ({
           ...state.messages,
           [conversationId]: existing.map((m) =>
             m.tempId === tempId ? { ...m, status: "failed" as const } : m
+          ),
+        },
+      }
+    }),
+
+  setMessageSending: (conversationId, tempId) =>
+    set((state) => {
+      const existing = state.messages[conversationId] || []
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: existing.map((m) =>
+            m.tempId === tempId ? { ...m, status: "sending" as const } : m
           ),
         },
       }

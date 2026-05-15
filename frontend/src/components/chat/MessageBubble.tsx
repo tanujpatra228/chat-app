@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil, Copy } from "lucide-react"
+import { Clock, Check, CheckCheck, Reply, Pencil, Copy } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
 import { LinkPreview } from "./LinkPreview"
 import { linkifyText } from "@/utils/linkify"
@@ -12,6 +12,8 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void
   onScrollToMessage?: (messageId: string) => void
   onEdit?: (message: Message) => void
+  onRetry?: (tempId: string) => void
+  onRemoveFailed?: (tempId: string) => void
 }
 
 const NUDGE_EMOJI = "\u{1F449}"
@@ -23,6 +25,8 @@ export function MessageBubble({
   onReply,
   onScrollToMessage,
   onEdit,
+  onRetry,
+  onRemoveFailed,
 }: MessageBubbleProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const didLongPress = useRef(false)
@@ -165,7 +169,7 @@ export function MessageBubble({
           <div
             className={`rounded-2xl px-4 py-2.5 text-sm md:px-4 shadow-md ${
               isMine ? "bubble-mine" : "bubble-other"
-            }`}
+            } ${message.status === "failed" ? "ring-1 ring-destructive/50" : ""}`}
           >
             <p className="whitespace-pre-wrap break-words">
               {linkifyText(message.content, isMine)}
@@ -246,10 +250,24 @@ export function MessageBubble({
           {isMine && message.readByOther && (
             <CheckCheck className="h-3 w-3 text-blue-500" />
           )}
-          {isMine && message.status === "failed" && (
-            <AlertCircle className="h-3 w-3 text-destructive" />
-          )}
         </div>
+        {isMine && message.status === "failed" && message.tempId && (
+          <div className="flex items-center gap-2 px-1 mt-0.5 justify-end">
+            <button
+              onClick={() => onRetry?.(message.tempId!)}
+              className="text-[10px] text-destructive/80 hover:text-destructive underline"
+            >
+              Retry
+            </button>
+            <span className="text-[10px] text-muted-foreground">·</span>
+            <button
+              onClick={() => onRemoveFailed?.(message.tempId!)}
+              className="text-[10px] text-muted-foreground hover:text-destructive underline"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Action buttons — right side for other's messages (desktop hover) */}

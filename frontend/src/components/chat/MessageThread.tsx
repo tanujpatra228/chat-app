@@ -22,7 +22,7 @@ const LOAD_MORE_THRESHOLD_PX = 200
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
   const { setReplyTo, decrementUnread, editMessage } = useChatStore()
-  const { messages, isLoading, hasMore, loadMore, sendMessage } = useMessages(
+  const { messages, isLoading, hasMore, loadMore, sendMessage, retryMessage, removeFailedMessage } = useMessages(
     conversation.id
   )
   const { emitTypingStart, stopTyping, typingUsers } = useTyping(conversation.id)
@@ -231,6 +231,8 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
               onReply={handleReply}
               onScrollToMessage={handleScrollToMessage}
               onEdit={handleEdit}
+              onRetry={retryMessage}
+              onRemoveFailed={removeFailedMessage}
             />
           </div>
         ))}
