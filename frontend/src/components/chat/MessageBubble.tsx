@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from "react"
 import { formatMessageTime } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
-import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil } from "lucide-react"
+import { AlertCircle, Clock, Check, CheckCheck, Reply, Pencil, Copy } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
 import { LinkPreview } from "./LinkPreview"
 import { linkifyText } from "@/utils/linkify"
@@ -40,21 +40,14 @@ export function MessageBubble({
     message.content !== NUDGE_EMOJI
 
   const handleTouchStart = useCallback(() => {
-    if (!canReply && !canEdit) return
+    if (message.is_deleted) return
     didLongPress.current = false
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true
       if (navigator.vibrate) navigator.vibrate(30)
-
-      // Own message with edit available: show action menu
-      if (isMine && (canReply || canEdit)) {
-        setShowActions(true)
-      } else if (canReply) {
-        // Other's message: reply directly
-        onReply?.(message)
-      }
+      setShowActions(true)
     }, LONG_PRESS_MS)
-  }, [canReply, canEdit, isMine, message, onReply])
+  }, [message.is_deleted])
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -217,6 +210,17 @@ export function MessageBubble({
                   className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
                 >
                   <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {message.content && (
+                <button
+                  onClick={() => {
+                    setShowActions(false)
+                    navigator.clipboard.writeText(message.content)
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  <Copy className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
