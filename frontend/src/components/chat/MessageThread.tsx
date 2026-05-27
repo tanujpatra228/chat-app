@@ -8,6 +8,7 @@ import { useTyping } from "@/hooks/useTyping"
 import { useAuthStore } from "@/stores/authStore"
 import { useChatStore } from "@/stores/chatStore"
 import { getSocket } from "@/lib/socket"
+import { bgThumbnailUrl } from "@/utils/cloudinary"
 import type { Conversation, Message } from "@/lib/types"
 
 interface MessageThreadProps {
@@ -194,14 +195,36 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     }
   }, [])
 
+  const bgUrl = conversation.background_image_url
+
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background/55 backdrop-blur-sm">
+    <div className="relative flex h-full min-h-0 flex-col">
+      {/* Background layers */}
+      {bgUrl ? (
+        <>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <img
+              src={bgThumbnailUrl(bgUrl)}
+              className="h-full w-full scale-110 object-cover blur-2xl"
+              aria-hidden
+              draggable={false}
+            />
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-background/40" />
+        </>
+      ) : (
+        <div className="pointer-events-none absolute inset-0 bg-background/55 backdrop-blur-sm" />
+      )}
+
+      {/* Content — sits above absolute bg layers */}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
       <ChatHeader
         conversation={conversation}
         onBack={onBack}
         typingUsers={typingUsers}
         nudgeType={nudgeType}
         onNudgeToggle={toggleNudgeType}
+        hasBackground={!!bgUrl}
       />
 
       <div
@@ -272,6 +295,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         onSaveEdit={handleSaveEdit}
         onCancelEdit={handleCancelEdit}
       />
+      </div>{/* end relative z-10 content wrapper */}
     </div>
   )
 }

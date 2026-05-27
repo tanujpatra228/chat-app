@@ -41,4 +41,25 @@ async function deleteMultipleImages(publicIds) {
   }
 }
 
-module.exports = { uploadImage, deleteImage, deleteMultipleImages };
+async function uploadBackground(fileBuffer, conversationId) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        public_id: `chat-app/conversation-backgrounds/${conversationId}`,
+        resource_type: "image",
+        overwrite: true,
+        transformation: [{ quality: "auto", fetch_format: "auto" }],
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+}
+
+module.exports = { uploadImage, deleteImage, deleteMultipleImages, uploadBackground };

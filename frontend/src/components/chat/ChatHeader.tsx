@@ -4,6 +4,7 @@ import { UserAvatar } from "@/components/users/UserAvatar"
 import { VanishingToggle } from "./VanishingToggle"
 import { NudgeToggle } from "./NudgeToggle"
 import { MeetLinkButton } from "./MeetLinkButton"
+import { ChatBackgroundButton } from "./ChatBackgroundButton"
 import { formatLastSeen } from "@/utils/formatDate"
 import type { Conversation } from "@/lib/types"
 
@@ -18,9 +19,10 @@ interface ChatHeaderProps {
   typingUsers?: TypingUser[]
   nudgeType?: "point" | "heart"
   onNudgeToggle?: () => void
+  hasBackground?: boolean
 }
 
-export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, onNudgeToggle }: ChatHeaderProps) {
+export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, onNudgeToggle, hasBackground }: ChatHeaderProps) {
   const name = conversation.other_display_name || conversation.other_username
 
   let statusText: string
@@ -36,7 +38,7 @@ export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, 
   }
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-2 border-b px-2 pt-[env(safe-area-inset-top)] md:px-4">
+    <div className={`flex h-14 shrink-0 items-center gap-2 border-b px-2 pt-[env(safe-area-inset-top)] md:px-4 ${hasBackground ? "bg-background/70 backdrop-blur-md" : ""}`}>
       {onBack && (
         <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 shrink-0">
           <ArrowLeft className="h-5 w-5" />
@@ -66,6 +68,10 @@ export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, 
       <MeetLinkButton
         conversationId={conversation.id}
         savedLink={conversation.saved_link}
+      />
+      <ChatBackgroundButton
+        conversationId={conversation.id}
+        hasBackground={!!conversation.background_image_url}
       />
     </div>
   )

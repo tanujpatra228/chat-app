@@ -46,6 +46,7 @@ async function getUserConversations(userId) {
        c.vanishing_mode,
        c.vanishing_duration_hours,
        c.saved_link,
+       c.background_image_url,
        c.created_at,
        c.updated_at,
        u.id AS other_user_id,
@@ -142,6 +143,28 @@ async function updateSavedLink(conversationId, url) {
   return rows[0];
 }
 
+async function updateBackground(conversationId, url, publicId) {
+  const { rows } = await pool.query(
+    `UPDATE conversations
+     SET background_image_url = $2, background_image_public_id = $3, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, background_image_url, background_image_public_id`,
+    [conversationId, url, publicId]
+  );
+  return rows[0];
+}
+
+async function clearBackground(conversationId) {
+  const { rows } = await pool.query(
+    `UPDATE conversations
+     SET background_image_url = NULL, background_image_public_id = NULL, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, background_image_public_id`,
+    [conversationId]
+  );
+  return rows[0];
+}
+
 module.exports = {
   findConversationBetween,
   createConversation,
@@ -152,4 +175,6 @@ module.exports = {
   updateLastReadMessage,
   updateVanishingMode,
   updateSavedLink,
+  updateBackground,
+  clearBackground,
 };

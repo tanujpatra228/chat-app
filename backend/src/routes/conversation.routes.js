@@ -2,6 +2,7 @@ const { Router } = require("express");
 const multer = require("multer");
 const conversationService = require("../services/conversation.service");
 const messageService = require("../services/message.service");
+const { uploadBackground, deleteImage } = require("../services/upload.service");
 const validate = require("../middleware/validate");
 const { createConversationSchema } = require("../validators/message.validator");
 const { parsePaginationParams } = require("../utils/pagination");
@@ -72,6 +73,40 @@ router.put("/:id/vanishing", async (req, res, next) => {
       durationHours || 24
     );
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:id/background", upload.single("image"), async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError(400, "No image provided");
+    await conversationService.verifyParticipant(req.params.id, req.user.userId);
+    const conversationRepo = require("../repositories/conversation.repository");
+
+    // Delete existing background from Cloudinary if present
+    const existing = await conversationRepo.findById(req.params.id);
+    if (existing?.background_image_public_id) {
+      await deleteImage(existing.background_image_public_id);
+    }
+
+    const { url, publicId } = await uploadBackground(req.file.buffer, req.params.id);
+    const result = await conversationRepo.updateBackground(req.params.id, url, publicId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/:id/background", async (req, res, next) => {
+  try {
+    await conversationService.verifyParticipant(req.params.id, req.user.userId);
+    const conversationRepo = require("../repositories/conversation.repository");
+    const row = await conversationRepo.clearBackground(req.params.id);
+    if (row?.background_image_public_id) {
+      await deleteImage(row.background_image_public_id);
+    }
+    res.json({ background_image_url: null });
   } catch (err) {
     next(err);
   }

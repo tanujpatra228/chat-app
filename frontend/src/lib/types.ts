@@ -31,6 +31,7 @@ export interface Conversation {
   vanishing_mode: boolean
   vanishing_duration_hours: number | null
   saved_link: string | null
+  background_image_url: string | null
 }
 
 export interface Message {

@@ -50,6 +50,7 @@ interface ChatState {
     preview: { url: string; title: string | null; description: string | null; image: string | null }
   ) => void
   updateConversationSavedLink: (conversationId: string, url: string | null) => void
+  updateConversationBackground: (conversationId: string, url: string | null) => void
 }
 
 const TYPING_EXPIRY_MS = 4000
@@ -352,6 +353,13 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => ({
       conversations: state.conversations.map((c) =>
         c.id === conversationId ? { ...c, saved_link: url } : c
+      ),
+    })),
+
+  updateConversationBackground: (conversationId, url) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId ? { ...c, background_image_url: url } : c
       ),
     })),
 }))
