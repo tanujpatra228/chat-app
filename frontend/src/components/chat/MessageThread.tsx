@@ -205,12 +205,12 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <img
               src={bgThumbnailUrl(bgUrl)}
-              className="h-full w-full scale-110 object-cover blur-2xl"
+              className="h-full w-full scale-110 object-cover blur-[1px]"
               aria-hidden
               draggable={false}
             />
           </div>
-          <div className="pointer-events-none absolute inset-0 bg-background/40" />
+          <div className="pointer-events-none absolute inset-0 bg-background/85" />
         </>
       ) : (
         <div className="pointer-events-none absolute inset-0 bg-background/55 backdrop-blur-sm" />
