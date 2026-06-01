@@ -9,9 +9,10 @@ const { createConversationSchema } = require("../validators/message.validator");
 const { parsePaginationParams } = require("../utils/pagination");
 const ApiError = require("../utils/ApiError");
 
+// Image-only upload (10 MB) — used by legacy /images route
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowedTypes = [
       "image/png", "image/jpeg", "image/jpg", "image/gif",
@@ -21,6 +22,23 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new ApiError(400, "Only image files are allowed"));
+    }
+  },
+});
+
+// Media upload (50 MB) — image, video, audio
+const mediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed =
+      file.mimetype.startsWith("image/") ||
+      file.mimetype.startsWith("video/") ||
+      file.mimetype.startsWith("audio/");
+    if (allowed) {
+      cb(null, true);
+    } else {
+      cb(new ApiError(400, "Only image, video, and audio files are allowed"));
     }
   },
 });
@@ -143,11 +161,36 @@ router.get("/search/messages", async (req, res, next) => {
   }
 });
 
+// Unified media endpoint — accepts image, video, audio
+router.post("/:id/media", requireParticipant, mediaUpload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError(400, "No file provided");
+
+    const message = await messageService.sendMediaMessage({
+      conversationId: req.params.id,
+      senderId: req.user.userId,
+      fileBuffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(req.params.id).emit("new_message", {
+        conversationId: req.params.id,
+        message: { ...message, sender_username: req.user.username },
+      });
+    }
+
+    res.status(201).json(message);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Legacy alias — kept for backwards compatibility
 router.post("/:id/images", requireParticipant, upload.single("image"), async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(400, "No image provided");
-    }
+    if (!req.file) throw new ApiError(400, "No image provided");
 
     const message = await messageService.sendImageMessage({
       conversationId: req.params.id,

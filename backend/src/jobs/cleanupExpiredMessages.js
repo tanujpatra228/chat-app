@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const messageRepo = require("../repositories/message.repository");
-const { deleteMultipleImages } = require("../services/upload.service");
+const { deleteMultipleMedia } = require("../services/upload.service");
 
 const CLEANUP_CRON = "*/1 * * * *"; // every 1 minute
 const BATCH_SIZE = 50;
@@ -18,20 +18,20 @@ async function cleanupExpiredMessages() {
   let totalMessagesDeleted = 0;
 
   try {
-    // Phase 1: delete expired images from Cloudinary (before DB rows go away)
+    // Phase 1: delete expired media from Cloudinary (before DB rows go away)
     while (true) {
-      const publicIds = await messageRepo.getExpiredImagePublicIds(BATCH_SIZE);
-      if (publicIds.length === 0) break;
+      const items = await messageRepo.getExpiredMediaItems(BATCH_SIZE);
+      if (items.length === 0) break;
 
       try {
-        await deleteMultipleImages(publicIds);
-        totalImagesDeleted += publicIds.length;
-        console.log(`Deleted ${publicIds.length} expired images from Cloudinary`);
+        await deleteMultipleMedia(items);
+        totalImagesDeleted += items.length;
+        console.log(`Deleted ${items.length} expired media items from Cloudinary`);
       } catch (err) {
         console.error("Cloudinary cleanup failed (continuing with DB delete):", err.message);
       }
 
-      if (publicIds.length < BATCH_SIZE) break;
+      if (items.length < BATCH_SIZE) break;
     }
 
     // Phase 2: delete expired rows (text + image) from DB; emit per conversation

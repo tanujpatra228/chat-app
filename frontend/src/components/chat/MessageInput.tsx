@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Send, X, ImagePlus, Loader2, Check } from "lucide-react"
+import { Send, X, Paperclip, Loader2, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chatStore"
 import api from "@/lib/api"
 import type { Message } from "@/lib/types"
 
 const DRAFTS_KEY = "chat-drafts"
-const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/jpg,image/gif,image/webp,image/heic,image/heif"
+const ACCEPTED_MEDIA_TYPES = "image/*,video/mp4,video/webm,video/quicktime,video/x-m4v,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"
+const MAX_MEDIA_SIZE_BYTES = 50 * 1024 * 1024
 
 function loadDraft(conversationId: string): string {
   try {
@@ -120,20 +121,20 @@ export function MessageInput({
     onTyping?.()
   }
 
-  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleMediaSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // Reset file input so same file can be selected again
     e.target.value = ""
+
+    if (file.size > MAX_MEDIA_SIZE_BYTES) return
 
     setIsUploading(true)
     onUploadStart?.()
     try {
       const formData = new FormData()
-      formData.append("image", file)
+      formData.append("file", file)
 
-      await api.post(`/conversations/${conversationId}/images`, formData, {
+      await api.post(`/conversations/${conversationId}/media`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -145,7 +146,7 @@ export function MessageInput({
         },
       })
     } catch (err) {
-      console.error("Image upload failed:", err)
+      console.error("Media upload failed:", err)
     } finally {
       setIsUploading(false)
       onUploadEnd?.()
@@ -195,8 +196,8 @@ export function MessageInput({
             <input
               ref={fileInputRef}
               type="file"
-              accept={ACCEPTED_IMAGE_TYPES}
-              onChange={handleImageSelect}
+              accept={ACCEPTED_MEDIA_TYPES}
+              onChange={handleMediaSelect}
               className="hidden"
             />
             <Button
@@ -210,7 +211,7 @@ export function MessageInput({
               {isUploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <ImagePlus className="h-4 w-4" />
+                <Paperclip className="h-4 w-4" />
               )}
             </Button>
           </>

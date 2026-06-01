@@ -50,10 +50,12 @@ export interface Message {
   reply_to_sender_id?: string | null
   reply_to_sender_username?: string | null
   is_edited?: boolean
-  message_type?: "text" | "image" | "nudge"
+  message_type?: "text" | "image" | "video" | "audio" | "nudge"
   nudge_type?: "point" | "heart"
   image_url?: string | null
   image_public_id?: string | null
+  media_resource_type?: string | null
+  media_duration_seconds?: number | null
   link_url?: string | null
   link_title?: string | null
   link_description?: string | null

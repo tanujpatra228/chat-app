@@ -5,6 +5,7 @@ import { Clock, Check, CheckCheck, Reply, Pencil, Copy } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
 import { LinkPreview } from "./LinkPreview"
 import { linkifyText } from "@/utils/linkify"
+import { videoThumbnailUrl } from "@/utils/cloudinary"
 
 interface MessageBubbleProps {
   message: Message
@@ -164,6 +165,23 @@ export function MessageBubble({
               />
             )}
           </>
+        ) : message.message_type === "video" && message.image_url ? (
+          <video
+            src={message.image_url}
+            controls
+            className="max-h-64 w-auto rounded-xl"
+            poster={videoThumbnailUrl(message.image_url)}
+            preload="metadata"
+          />
+        ) : message.message_type === "audio" && message.image_url ? (
+          <div className={`rounded-2xl px-3 py-2.5 ${isMine ? "bubble-mine" : "bubble-other"}`}>
+            <audio
+              src={message.image_url}
+              controls
+              className="w-full max-w-[260px]"
+              preload="metadata"
+            />
+          </div>
         ) : (
           /* Text message */
           <div

@@ -91,12 +91,56 @@ async function deleteMessage(messageId, userId) {
     throw new ApiError(403, "Can only delete your own messages");
   }
 
-  // Delete Cloudinary image if this is a media message
   if (message.image_public_id) {
-    await uploadService.deleteImage(message.image_public_id);
+    await uploadService.deleteMedia(
+      message.image_public_id,
+      message.media_resource_type || "image"
+    );
   }
 
   return messageRepo.softDelete(messageId);
+}
+
+function resolveMediaType(mimetype) {
+  if (mimetype.startsWith("video/")) return { messageType: "video", resourceType: "video" };
+  if (mimetype.startsWith("audio/")) return { messageType: "audio", resourceType: "video" };
+  return { messageType: "image", resourceType: "image" };
+}
+
+async function sendMediaMessage({ conversationId, senderId, fileBuffer, mimetype }) {
+  const isParticipant = await conversationRepo.isParticipant(conversationId, senderId);
+  if (!isParticipant) {
+    throw new ApiError(403, "Not a participant of this conversation");
+  }
+
+  const { messageType, resourceType } = resolveMediaType(mimetype);
+
+  const { url, publicId, duration } = await uploadService.uploadMedia(
+    fileBuffer,
+    conversationId,
+    resourceType
+  );
+
+  const conversation = await conversationRepo.findById(conversationId);
+  let expiresAt = null;
+  if (conversation?.vanishing_mode && conversation.vanishing_duration_hours) {
+    expiresAt = new Date(
+      Date.now() + conversation.vanishing_duration_hours * 3600000
+    ).toISOString();
+  }
+
+  return messageRepo.createMessage({
+    conversationId,
+    senderId,
+    content: "",
+    replyToId: null,
+    expiresAt,
+    messageType,
+    imageUrl: url,
+    imagePublicId: publicId,
+    mediaResourceType: resourceType,
+    mediaDurationSeconds: duration ? Math.round(duration) : null,
+  });
 }
 
 async function sendImageMessage({ conversationId, senderId, fileBuffer }) {
@@ -140,4 +184,4 @@ async function searchMessages(query, userId) {
   return messageRepo.searchMessages(query.trim(), userId);
 }
 
-module.exports = { sendMessage, sendImageMessage, getMessages, editMessage, deleteMessage, searchMessages };
+module.exports = { sendMessage, sendMediaMessage, sendImageMessage, getMessages, editMessage, deleteMessage, searchMessages };

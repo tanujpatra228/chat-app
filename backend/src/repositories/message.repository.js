@@ -13,12 +13,16 @@ function decryptMessage(message) {
   return message;
 }
 
-async function createMessage({ conversationId, senderId, content, replyToId, expiresAt, messageType, nudgeType, imageUrl, imagePublicId }) {
+async function createMessage({ conversationId, senderId, content, replyToId, expiresAt, messageType, nudgeType, imageUrl, imagePublicId, mediaResourceType, mediaDurationSeconds }) {
   const encrypted = content ? encrypt(content) : { content: null, iv: null, authTag: null };
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, content, encrypted_content, iv, auth_tag, reply_to_id, expires_at, message_type, nudge_type, image_url, image_public_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    `INSERT INTO messages (
+       conversation_id, sender_id, content, encrypted_content, iv, auth_tag,
+       reply_to_id, expires_at, message_type, nudge_type,
+       image_url, image_public_id, media_resource_type, media_duration_seconds
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [
       conversationId,
@@ -33,6 +37,8 @@ async function createMessage({ conversationId, senderId, content, replyToId, exp
       nudgeType || null,
       imageUrl || null,
       imagePublicId || null,
+      mediaResourceType || "image",
+      mediaDurationSeconds || null,
     ]
   );
 
@@ -181,15 +187,25 @@ async function updateLinkPreview(messageId, preview) {
   return rows[0];
 }
 
-async function getExpiredImagePublicIds(batchSize = 100) {
+async function getExpiredMediaItems(batchSize = 100) {
   const { rows } = await pool.query(
-    `SELECT image_public_id FROM messages
+    `SELECT image_public_id, media_resource_type
+     FROM messages
      WHERE expires_at IS NOT NULL AND expires_at < NOW()
        AND image_public_id IS NOT NULL
      LIMIT $1`,
     [batchSize]
   );
-  return rows.map((r) => r.image_public_id);
+  return rows.map((r) => ({
+    publicId: r.image_public_id,
+    resourceType: r.media_resource_type || "image",
+  }));
+}
+
+// Backwards-compat alias
+async function getExpiredImagePublicIds(batchSize = 100) {
+  const items = await getExpiredMediaItems(batchSize);
+  return items.map((i) => i.publicId);
 }
 
 async function deleteExpiredMessages(batchSize = 100) {
@@ -248,6 +264,7 @@ module.exports = {
   editMessage,
   updateLinkPreview,
   softDelete,
+  getExpiredMediaItems,
   getExpiredImagePublicIds,
   deleteExpiredMessages,
   searchMessages,
