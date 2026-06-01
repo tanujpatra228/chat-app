@@ -155,11 +155,15 @@ async function updateBackground(conversationId, url, publicId) {
 }
 
 async function clearBackground(conversationId) {
+  // CTE captures public_id before the UPDATE nulls it — RETURNING reflects post-update values.
   const { rows } = await pool.query(
-    `UPDATE conversations
-     SET background_image_url = NULL, background_image_public_id = NULL, updated_at = NOW()
-     WHERE id = $1
-     RETURNING id, background_image_public_id`,
+    `WITH old AS (
+       SELECT background_image_public_id FROM conversations WHERE id = $1
+     )
+     UPDATE conversations
+       SET background_image_url = NULL, background_image_public_id = NULL, updated_at = NOW()
+       WHERE id = $1
+     RETURNING id, (SELECT background_image_public_id FROM old) AS background_image_public_id`,
     [conversationId]
   );
   return rows[0];

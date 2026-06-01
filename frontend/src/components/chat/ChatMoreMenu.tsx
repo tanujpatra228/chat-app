@@ -27,6 +27,8 @@ const DURATION_OPTIONS = [
   { label: "7 days", value: 168 },
 ]
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+
 interface ChatMoreMenuProps {
   conversationId: string
   vanishingEnabled: boolean
@@ -46,29 +48,35 @@ export function ChatMoreMenu({
 }: ChatMoreMenuProps) {
   const [vanishingOpen, setVanishingOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { updateVanishingMode, updateConversationBackground } = useChatStore()
 
   function handleVanishingSelect(hours: number) {
     const socket = getSocket()
     if (!socket) return
+
     const vanishingMode = hours > 0
     socket.emit(
       "toggle_vanishing",
-      { conversationId, vanishingMode, durationHours: hours || 24 },
+      { conversationId, vanishingMode, durationHours: vanishingMode ? hours : null },
       (ack: { success: boolean }) => {
         if (ack.success) {
           updateVanishingMode(conversationId, vanishingMode, vanishingMode ? hours : null)
+          setVanishingOpen(false)
         }
       }
     )
-    setVanishingOpen(false)
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ""
+
+    if (!file.type.startsWith("image/")) return
+    if (file.size > MAX_FILE_SIZE_BYTES) return
+
     setUploading(true)
     try {
       const form = new FormData()
@@ -85,11 +93,15 @@ export function ChatMoreMenu({
   }
 
   async function handleRemoveBackground() {
+    if (removing) return
+    setRemoving(true)
     try {
       await api.delete(`/conversations/${conversationId}/background`)
       updateConversationBackground(conversationId, null)
     } catch (err) {
       console.error("Failed to remove background:", err)
+    } finally {
+      setRemoving(false)
     }
   }
 
@@ -108,10 +120,7 @@ export function ChatMoreMenu({
 
         <DropdownMenuContent align="end" className="w-52">
           {/* Vanishing messages */}
-          <DropdownMenuItem
-            onSelect={() => setVanishingOpen(true)}
-            className="gap-2"
-          >
+          <DropdownMenuItem onSelect={() => setVanishingOpen(true)} className="gap-2">
             <Ghost className={`h-4 w-4 ${vanishingEnabled ? "text-amber-500" : ""}`} />
             <span>Vanishing messages</span>
             {vanishingLabel && (
@@ -132,26 +141,25 @@ export function ChatMoreMenu({
 
           <DropdownMenuSeparator />
 
-          {/* Background image */}
-          <DropdownMenuItem
-            onSelect={() => fileInputRef.current?.click()}
-            className="gap-2"
-            disabled={uploading}
-          >
-            {uploading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <ImageUp className={`h-4 w-4 ${hasBackground ? "text-primary" : ""}`} />
-            }
-            <span>{hasBackground ? "Change background" : "Set background"}</span>
+          {/* Background image — label triggers file input natively (user-gesture safe on all browsers) */}
+          <DropdownMenuItem asChild disabled={uploading}>
+            <label htmlFor="bg-upload-input" className="gap-2 cursor-pointer">
+              {uploading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <ImageUp className={`h-4 w-4 ${hasBackground ? "text-primary" : ""}`} />
+              }
+              <span>{hasBackground ? "Change background" : "Set background"}</span>
+            </label>
           </DropdownMenuItem>
 
           {hasBackground && (
             <DropdownMenuItem
+              inset
               onSelect={handleRemoveBackground}
-              className="gap-2 text-destructive focus:text-destructive"
+              disabled={removing}
+              className="text-destructive focus:text-destructive"
             >
-              <ImageUp className="h-4 w-4 opacity-0" />
-              <span>Remove background</span>
+              {removing ? "Removing…" : "Remove background"}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -189,6 +197,7 @@ export function ChatMoreMenu({
 
       <input
         ref={fileInputRef}
+        id="bg-upload-input"
         type="file"
         accept="image/*"
         className="hidden"

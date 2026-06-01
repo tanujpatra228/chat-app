@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const multer = require("multer");
 const conversationService = require("../services/conversation.service");
+const conversationRepo = require("../repositories/conversation.repository");
 const messageService = require("../services/message.service");
 const { uploadBackground, deleteImage } = require("../services/upload.service");
 const validate = require("../middleware/validate");
@@ -23,6 +24,16 @@ const upload = multer({
     }
   },
 });
+
+// Rejects non-participants before any body parsing runs.
+async function requireParticipant(req, res, next) {
+  try {
+    await conversationService.verifyParticipant(req.params.id, req.user.userId);
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
 
 const router = Router();
 
@@ -78,13 +89,11 @@ router.put("/:id/vanishing", async (req, res, next) => {
   }
 });
 
-router.post("/:id/background", upload.single("image"), async (req, res, next) => {
+// requireParticipant runs before upload.single — rejects non-participants before body is read.
+router.post("/:id/background", requireParticipant, upload.single("image"), async (req, res, next) => {
   try {
     if (!req.file) throw new ApiError(400, "No image provided");
-    await conversationService.verifyParticipant(req.params.id, req.user.userId);
-    const conversationRepo = require("../repositories/conversation.repository");
 
-    // Delete existing background from Cloudinary if present
     const existing = await conversationRepo.findById(req.params.id);
     if (existing?.background_image_public_id) {
       await deleteImage(existing.background_image_public_id);
@@ -98,10 +107,8 @@ router.post("/:id/background", upload.single("image"), async (req, res, next) =>
   }
 });
 
-router.delete("/:id/background", async (req, res, next) => {
+router.delete("/:id/background", requireParticipant, async (req, res, next) => {
   try {
-    await conversationService.verifyParticipant(req.params.id, req.user.userId);
-    const conversationRepo = require("../repositories/conversation.repository");
     const row = await conversationRepo.clearBackground(req.params.id);
     if (row?.background_image_public_id) {
       await deleteImage(row.background_image_public_id);
@@ -112,10 +119,8 @@ router.delete("/:id/background", async (req, res, next) => {
   }
 });
 
-router.patch("/:id/saved-link", async (req, res, next) => {
+router.patch("/:id/saved-link", requireParticipant, async (req, res, next) => {
   try {
-    await conversationService.verifyParticipant(req.params.id, req.user.userId);
-    const conversationRepo = require("../repositories/conversation.repository");
     const result = await conversationRepo.updateSavedLink(
       req.params.id,
       req.body.url || null
@@ -138,7 +143,7 @@ router.get("/search/messages", async (req, res, next) => {
   }
 });
 
-router.post("/:id/images", upload.single("image"), async (req, res, next) => {
+router.post("/:id/images", requireParticipant, upload.single("image"), async (req, res, next) => {
   try {
     if (!req.file) {
       throw new ApiError(400, "No image provided");
@@ -150,7 +155,6 @@ router.post("/:id/images", upload.single("image"), async (req, res, next) => {
       fileBuffer: req.file.buffer,
     });
 
-    // Broadcast via Socket.IO if available
     const io = req.app.get("io");
     if (io) {
       io.to(req.params.id).emit("new_message", {
