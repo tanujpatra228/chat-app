@@ -1,10 +1,8 @@
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/users/UserAvatar"
-import { VanishingToggle } from "./VanishingToggle"
-import { NudgeToggle } from "./NudgeToggle"
 import { MeetLinkButton } from "./MeetLinkButton"
-import { ChatBackgroundButton } from "./ChatBackgroundButton"
+import { ChatMoreMenu } from "./ChatMoreMenu"
 import { formatLastSeen } from "@/utils/formatDate"
 import type { Conversation } from "@/lib/types"
 
@@ -57,22 +55,20 @@ export function ChatHeader({ conversation, onBack, typingUsers = [], nudgeType, 
           {statusText}
         </p>
       </div>
-      <VanishingToggle
-        conversationId={conversation.id}
-        isEnabled={conversation.vanishing_mode}
-        durationHours={conversation.vanishing_duration_hours}
-      />
-      {nudgeType && onNudgeToggle && (
-        <NudgeToggle nudgeType={nudgeType} onToggle={onNudgeToggle} />
-      )}
       <MeetLinkButton
         conversationId={conversation.id}
         savedLink={conversation.saved_link}
       />
-      <ChatBackgroundButton
-        conversationId={conversation.id}
-        hasBackground={!!conversation.background_image_url}
-      />
+      {nudgeType && onNudgeToggle && (
+        <ChatMoreMenu
+          conversationId={conversation.id}
+          vanishingEnabled={conversation.vanishing_mode}
+          vanishingDurationHours={conversation.vanishing_duration_hours}
+          nudgeType={nudgeType}
+          onNudgeToggle={onNudgeToggle}
+          hasBackground={!!conversation.background_image_url}
+        />
+      )}
     </div>
   )
 }
