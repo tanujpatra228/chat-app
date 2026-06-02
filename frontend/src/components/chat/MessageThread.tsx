@@ -152,9 +152,14 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
 
   const handleReply = useCallback(
     (message: Message) => {
+      const mediaLabel =
+        message.message_type === "image" ? "📷 Photo" :
+        message.message_type === "video" ? "🎥 Video" :
+        message.message_type === "audio" ? "🎵 Audio" : null
+
       setReplyTo({
         messageId: message.id,
-        content: message.content,
+        content: mediaLabel ?? message.content,
         senderUsername: message.sender_username || "Unknown",
       })
     },

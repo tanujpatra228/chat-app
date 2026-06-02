@@ -1,6 +1,13 @@
 const { pool } = require("../config/db");
 const { encrypt, decrypt, isEnabled } = require("../utils/encryption");
 
+function mediaLabel(messageType) {
+  if (messageType === "image") return "📷 Photo";
+  if (messageType === "video") return "🎥 Video";
+  if (messageType === "audio") return "🎵 Audio";
+  return "";
+}
+
 function decryptMessage(message) {
   if (message.is_deleted || !message.content) return message;
 
@@ -47,7 +54,7 @@ async function createMessage({ conversationId, senderId, content, replyToId, exp
 
   if (replyToId) {
     const { rows: replyRows } = await pool.query(
-      `SELECT rm.content, rm.encrypted_content, rm.iv, rm.auth_tag, rm.sender_id, ru.username AS sender_username
+      `SELECT rm.content, rm.encrypted_content, rm.iv, rm.auth_tag, rm.message_type, rm.sender_id, ru.username AS sender_username
        FROM messages rm
        JOIN users ru ON ru.id = rm.sender_id
        WHERE rm.id = $1`,
@@ -59,7 +66,7 @@ async function createMessage({ conversationId, senderId, content, replyToId, exp
       if (isEnabled() && r.iv && r.auth_tag) {
         replyContent = decrypt(r.encrypted_content || r.content, r.iv, r.auth_tag);
       }
-      message.reply_to_content = replyContent;
+      message.reply_to_content = replyContent || mediaLabel(r.message_type);
       message.reply_to_sender_id = r.sender_id;
       message.reply_to_sender_username = r.sender_username;
     }
@@ -92,6 +99,7 @@ async function getMessages(conversationId, { limit, cursor }) {
        rm.encrypted_content AS reply_to_encrypted_content,
        rm.iv AS reply_to_iv,
        rm.auth_tag AS reply_to_auth_tag,
+       rm.message_type AS reply_to_message_type,
        rm.sender_id AS reply_to_sender_id,
        ru.username AS reply_to_sender_username
      FROM messages m
@@ -115,6 +123,9 @@ async function getMessages(conversationId, { limit, cursor }) {
           row.reply_to_iv,
           row.reply_to_auth_tag
         );
+      }
+      if (!msg.reply_to_content && row.reply_to_message_type) {
+        msg.reply_to_content = mediaLabel(row.reply_to_message_type);
       }
     }
 
