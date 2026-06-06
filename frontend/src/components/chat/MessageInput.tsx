@@ -65,7 +65,6 @@ export function MessageInput({
   const [isUploading, setIsUploading] = useState(false)
   const [mediaError, setMediaError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const { replyTo, setReplyTo } = useChatStore()
 
   // Load draft on conversation change
@@ -203,10 +202,11 @@ export function MessageInput({
         {mode === 'send' && (
           <>
             <input
-              ref={fileInputRef}
+              id="media-file-input"
               type="file"
               accept={ACCEPTED_MEDIA_TYPES}
               onChange={handleMediaSelect}
+              disabled={disabled || isUploading}
               className="hidden"
             />
             <Button
@@ -215,13 +215,15 @@ export function MessageInput({
               size="icon"
               className="h-9 w-9 shrink-0"
               disabled={disabled || isUploading}
-              onClick={() => fileInputRef.current?.click()}
+              asChild
             >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Paperclip className="h-4 w-4" />
-              )}
+              <label htmlFor="media-file-input" className="cursor-pointer">
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
+              </label>
             </Button>
           </>
         )}
