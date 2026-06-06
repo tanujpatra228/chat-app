@@ -40,6 +40,7 @@ interface MessageInputProps {
   onUploadStart?: (mediaType: string) => void
   onUploadProgress?: (percent: number) => void
   onUploadEnd?: () => void
+  onMediaUploaded?: (message: Message) => void
   disabled?: boolean
   mode?: 'send' | 'edit'
   editingMessage?: Message | null
@@ -55,6 +56,7 @@ export function MessageInput({
   onUploadStart,
   onUploadProgress,
   onUploadEnd,
+  onMediaUploaded,
   disabled,
   mode = 'send',
   editingMessage,
@@ -138,7 +140,7 @@ export function MessageInput({
       const formData = new FormData()
       formData.append("file", file)
 
-      await api.post(`/conversations/${conversationId}/media`, formData, {
+      const { data } = await api.post(`/conversations/${conversationId}/media`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -149,8 +151,10 @@ export function MessageInput({
           }
         },
       })
+      onMediaUploaded?.(data)
     } catch (err) {
       console.error("Media upload failed:", err)
+      setMediaError("Upload failed. Please try again.")
     } finally {
       setIsUploading(false)
       onUploadEnd?.()

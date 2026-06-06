@@ -11,6 +11,8 @@ import { getSocket } from "@/lib/socket"
 import { bgThumbnailUrl } from "@/utils/cloudinary"
 import type { Conversation, Message } from "@/lib/types"
 
+
+
 interface MessageThreadProps {
   conversation: Conversation
   onBack?: () => void
@@ -22,7 +24,7 @@ const LOAD_MORE_THRESHOLD_PX = 200
 
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
-  const { setReplyTo, decrementUnread, editMessage } = useChatStore()
+  const { setReplyTo, decrementUnread, editMessage, addMessage, updateConversationLastMessage } = useChatStore()
   const { messages, isLoading, hasMore, loadMore, sendMessage, retryMessage, removeFailedMessage } = useMessages(
     conversation.id
   )
@@ -200,6 +202,18 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
     }
   }, [])
 
+  const handleMediaUploaded = useCallback((message: Message) => {
+    const enriched: Message = {
+      ...message,
+      status: "sent",
+      stableKey: message.id,
+      sender_username: message.sender_username || user?.username || "",
+      sender_display_name: message.sender_display_name ?? user?.displayName ?? null,
+    }
+    addMessage(conversation.id, enriched)
+    updateConversationLastMessage(conversation.id, enriched)
+  }, [conversation.id, user, addMessage, updateConversationLastMessage])
+
   const bgUrl = conversation.background_image_url
 
   return (
@@ -307,6 +321,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         onUploadStart={(mediaType) => setUploadState({ progress: 0, mediaType })}
         onUploadProgress={(p) => setUploadState(prev => prev ? { ...prev, progress: p } : null)}
         onUploadEnd={() => setUploadState(null)}
+        onMediaUploaded={handleMediaUploaded}
         mode={editingMessage ? 'edit' : 'send'}
         editingMessage={editingMessage || undefined}
         onSaveEdit={handleSaveEdit}
