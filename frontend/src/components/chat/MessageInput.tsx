@@ -37,7 +37,7 @@ interface MessageInputProps {
   onSend: (content: string, replyToId?: string, replyToContent?: string, replyToSenderUsername?: string) => void
   onTyping?: () => void
   onStopTyping?: () => void
-  onUploadStart?: () => void
+  onUploadStart?: (mediaType: string) => void
   onUploadProgress?: (percent: number) => void
   onUploadEnd?: () => void
   disabled?: boolean
@@ -63,6 +63,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [content, setContent] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [mediaError, setMediaError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { replyTo, setReplyTo } = useChatStore()
@@ -126,10 +127,14 @@ export function MessageInput({
     if (!file) return
     e.target.value = ""
 
-    if (file.size > MAX_MEDIA_SIZE_BYTES) return
+    if (file.size > MAX_MEDIA_SIZE_BYTES) {
+      setMediaError("File too large (max 50 MB)")
+      setTimeout(() => setMediaError(null), 3000)
+      return
+    }
 
     setIsUploading(true)
-    onUploadStart?.()
+    onUploadStart?.(file.type)
     try {
       const formData = new FormData()
       formData.append("file", file)
@@ -184,6 +189,10 @@ export function MessageInput({
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
+      )}
+
+      {mediaError && (
+        <p className="px-3 py-1 text-xs text-destructive md:px-4">{mediaError}</p>
       )}
 
       <form

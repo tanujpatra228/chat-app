@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useLayoutEffect } from "react"
-import { Loader2, ImageUp } from "lucide-react"
+import { Loader2, ImageUp, Video, Music2 } from "lucide-react"
 import { ChatHeader } from "./ChatHeader"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
@@ -30,7 +30,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const lastTapRef = useRef(0)
   const shouldScrollRef = useRef(true)
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadState, setUploadState] = useState<{ progress: number; mediaType: string } | null>(null)
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
   const [nudgeType, setNudgeType] = useState<"point" | "heart">(defaultNudgeType)
 
@@ -243,7 +243,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
           </div>
         )}
 
-        {!isLoading && messages.length === 0 && uploadProgress === null && (
+        {!isLoading && messages.length === 0 && uploadState === null && (
           <div className="flex flex-col items-center justify-center py-16">
             <p className="text-muted-foreground text-sm">
               No messages yet. Say hello!
@@ -266,20 +266,32 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         ))}
 
         {/* Upload progress bubble */}
-        {uploadProgress !== null && (
+        {uploadState !== null && (
           <div className="flex justify-end px-3 py-1 md:px-4">
             <div className="flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5">
-              <ImageUp className="h-4 w-4 text-primary-foreground" />
+              {uploadState.mediaType.startsWith("video") ? (
+                <Video className="h-4 w-4 text-primary-foreground" />
+              ) : uploadState.mediaType.startsWith("audio") ? (
+                <Music2 className="h-4 w-4 text-primary-foreground" />
+              ) : (
+                <ImageUp className="h-4 w-4 text-primary-foreground" />
+              )}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-primary-foreground">
-                  Uploading... {uploadProgress}%
+                  {uploadState.progress > 0 ? `Uploading... ${uploadState.progress}%` : "Uploading..."}
                 </span>
-                <div className="h-1 w-24 overflow-hidden rounded-full bg-primary-foreground/30">
-                  <div
-                    className="h-full rounded-full bg-primary-foreground transition-all duration-200"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
+                {uploadState.progress > 0 ? (
+                  <div className="h-1 w-24 overflow-hidden rounded-full bg-primary-foreground/30">
+                    <div
+                      className="h-full rounded-full bg-primary-foreground transition-all duration-200"
+                      style={{ width: `${uploadState.progress}%` }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-1 w-24 overflow-hidden rounded-full bg-primary-foreground/30">
+                    <div className="h-full w-1/3 animate-pulse rounded-full bg-primary-foreground" />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -292,9 +304,9 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
         onSend={sendMessage}
         onTyping={emitTypingStart}
         onStopTyping={stopTyping}
-        onUploadStart={() => setUploadProgress(0)}
-        onUploadProgress={(p) => setUploadProgress(p)}
-        onUploadEnd={() => setUploadProgress(null)}
+        onUploadStart={(mediaType) => setUploadState({ progress: 0, mediaType })}
+        onUploadProgress={(p) => setUploadState(prev => prev ? { ...prev, progress: p } : null)}
+        onUploadEnd={() => setUploadState(null)}
         mode={editingMessage ? 'edit' : 'send'}
         editingMessage={editingMessage || undefined}
         onSaveEdit={handleSaveEdit}
