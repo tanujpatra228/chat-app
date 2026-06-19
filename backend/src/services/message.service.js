@@ -177,6 +177,38 @@ async function sendImageMessage({ conversationId, senderId, fileBuffer }) {
   });
 }
 
+async function confirmMediaMessage({ conversationId, senderId, url, publicId, mimetype, duration }) {
+  const isParticipant = await conversationRepo.isParticipant(conversationId, senderId);
+  if (!isParticipant) throw new ApiError(403, "Not a participant of this conversation");
+
+  // Verify asset belongs to our Cloudinary account and conversation folder
+  const expectedUrlPrefix = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`;
+  const expectedFolder = `chat-app/${conversationId}/`;
+  if (!url.startsWith(expectedUrlPrefix)) throw new ApiError(400, "Invalid asset URL");
+  if (!publicId.startsWith(expectedFolder)) throw new ApiError(400, "Invalid asset ID");
+
+  const { messageType, resourceType } = resolveMediaType(mimetype);
+
+  const conversation = await conversationRepo.findById(conversationId);
+  let expiresAt = null;
+  if (conversation?.vanishing_mode && conversation.vanishing_duration_hours) {
+    expiresAt = new Date(Date.now() + conversation.vanishing_duration_hours * 3600000).toISOString();
+  }
+
+  return messageRepo.createMessage({
+    conversationId,
+    senderId,
+    content: "",
+    replyToId: null,
+    expiresAt,
+    messageType,
+    imageUrl: url,
+    imagePublicId: publicId,
+    mediaResourceType: resourceType,
+    mediaDurationSeconds: duration ? Math.round(duration) : null,
+  });
+}
+
 async function searchMessages(query, userId) {
   if (!query || query.trim().length < 2) {
     return [];
@@ -184,4 +216,4 @@ async function searchMessages(query, userId) {
   return messageRepo.searchMessages(query.trim(), userId);
 }
 
-module.exports = { sendMessage, sendMediaMessage, sendImageMessage, getMessages, editMessage, deleteMessage, searchMessages };
+module.exports = { sendMessage, sendMediaMessage, sendImageMessage, confirmMediaMessage, getMessages, editMessage, deleteMessage, searchMessages };

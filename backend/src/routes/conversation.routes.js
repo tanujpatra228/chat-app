@@ -3,7 +3,7 @@ const multer = require("multer");
 const conversationService = require("../services/conversation.service");
 const conversationRepo = require("../repositories/conversation.repository");
 const messageService = require("../services/message.service");
-const { uploadBackground, deleteImage } = require("../services/upload.service");
+const { uploadBackground, deleteImage, generateUploadSignature } = require("../services/upload.service");
 const validate = require("../middleware/validate");
 const { createConversationSchema } = require("../validators/message.validator");
 const { parsePaginationParams } = require("../utils/pagination");
@@ -171,6 +171,50 @@ router.post("/:id/media", requireParticipant, mediaUpload.single("file"), async 
       senderId: req.user.userId,
       fileBuffer: req.file.buffer,
       mimetype: req.file.mimetype,
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(req.params.id).emit("new_message", {
+        conversationId: req.params.id,
+        message: { ...message, sender_username: req.user.username },
+      });
+    }
+
+    res.status(201).json(message);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Returns Cloudinary signature for direct browser upload (video/audio)
+router.get("/:id/media/upload-params", requireParticipant, async (req, res, next) => {
+  try {
+    const { mimetype } = req.query;
+    if (!mimetype) throw new ApiError(400, "mimetype query param required");
+    if (!mimetype.startsWith("video/") && !mimetype.startsWith("audio/")) {
+      throw new ApiError(400, "Direct upload only supported for video and audio");
+    }
+    const params = generateUploadSignature(req.params.id);
+    res.json(params);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Confirms a direct Cloudinary upload and creates the message record
+router.post("/:id/media/confirm", requireParticipant, async (req, res, next) => {
+  try {
+    const { url, publicId, mimetype, duration } = req.body;
+    if (!url || !publicId || !mimetype) throw new ApiError(400, "url, publicId, mimetype required");
+
+    const message = await messageService.confirmMediaMessage({
+      conversationId: req.params.id,
+      senderId: req.user.userId,
+      url,
+      publicId,
+      mimetype,
+      duration: duration ?? null,
     });
 
     const io = req.app.get("io");

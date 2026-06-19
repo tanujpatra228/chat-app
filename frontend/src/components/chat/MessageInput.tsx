@@ -2,7 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Send, X, Paperclip, Loader2, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chatStore"
+import axios from "axios"
 import api from "@/lib/api"
+
+// Bare axios instance — no auth headers, used for direct Cloudinary upload
+const cloudinaryAxios = axios.create()
 import type { Message } from "@/lib/types"
 
 const DRAFTS_KEY = "chat-drafts"
@@ -137,21 +141,59 @@ export function MessageInput({
     setIsUploading(true)
     onUploadStart?.(file.type)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
+      const isDirectUpload = file.type.startsWith("video/") || file.type.startsWith("audio/")
 
-      const { data } = await api.post(`/conversations/${conversationId}/media`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            )
-            onUploadProgress?.(percent)
+      if (isDirectUpload) {
+        // 1. Get signed upload params from backend
+        const { data: params } = await api.get(`/conversations/${conversationId}/media/upload-params`, {
+          params: { mimetype: file.type },
+        })
+
+        // 2. Upload directly to Cloudinary — no auth headers (bare axios instance)
+        const formData = new FormData()
+        formData.append("file", file)
+        formData.append("api_key", params.apiKey)
+        formData.append("timestamp", String(params.timestamp))
+        formData.append("signature", params.signature)
+        formData.append("folder", params.folder)
+
+        const { data: cloudinaryResult } = await cloudinaryAxios.post(
+          `https://api.cloudinary.com/v1_1/${params.cloudName}/video/upload`,
+          formData,
+          {
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                onUploadProgress?.(percent)
+              }
+            },
           }
-        },
-      })
-      onMediaUploaded?.(data)
+        )
+
+        // 3. Confirm with backend to create message + emit socket
+        const { data: message } = await api.post(`/conversations/${conversationId}/media/confirm`, {
+          url: cloudinaryResult.secure_url,
+          publicId: cloudinaryResult.public_id,
+          mimetype: file.type,
+          duration: cloudinaryResult.duration ?? null,
+        })
+        onMediaUploaded?.(message)
+      } else {
+        // Images: existing server-side upload
+        const formData = new FormData()
+        formData.append("file", file)
+
+        const { data } = await api.post(`/conversations/${conversationId}/media`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              onUploadProgress?.(percent)
+            }
+          },
+        })
+        onMediaUploaded?.(data)
+      }
     } catch (err) {
       console.error("Media upload failed:", err)
       setMediaError("Upload failed. Please try again.")
