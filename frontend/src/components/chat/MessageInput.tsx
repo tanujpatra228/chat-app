@@ -238,7 +238,7 @@ export function MessageInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={mode === 'edit' ? "Edit message..." : "Type a message..."}
-          disabled={disabled || isUploading}
+          disabled={disabled}
           rows={1}
           className="bg-muted flex-1 resize-none rounded-xl px-3 py-2 text-sm outline-none placeholder:text-muted-foreground md:px-4 md:py-2.5"
         />
@@ -271,7 +271,7 @@ export function MessageInput({
             size="icon"
             tabIndex={-1}
             onMouseDown={(e) => e.preventDefault()}
-            disabled={disabled || isUploading || !content.trim()}
+            disabled={disabled || !content.trim()}
             className="h-9 w-9 shrink-0 rounded-full"
           >
             <Send className="h-4 w-4" />

@@ -71,10 +71,14 @@ function applyReadStatus(
   )
 }
 
+const MAX_AUTO_RETRIES = 3
+const RETRY_DELAYS_MS = [2000, 4000, 8000]
+
 export function useMessages(conversationId: string | null) {
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const cursorRef = useRef<string | null>(null)
+  const retryTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const { user } = useAuthStore()
   const {
     messages,
@@ -137,18 +141,31 @@ export function useMessages(conversationId: string | null) {
     }
   }, [conversationId, isLoading, user, otherLastReadMessageId, prependMessages])
 
+  function scheduleRetry(attempt: number, tempId: string, content: string, replyToId: string | undefined, nudgeType: "point" | "heart" | undefined, isNudge: boolean, entry: FailedEntry) {
+    const delay = RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]
+    retryTimersRef.current[tempId] = setTimeout(() => {
+      delete retryTimersRef.current[tempId]
+      emitSend(tempId, content, replyToId, nudgeType, isNudge, entry, attempt)
+    }, delay)
+  }
+
   function emitSend(
     tempId: string,
     content: string,
     replyToId: string | undefined,
     nudgeType: "point" | "heart" | undefined,
     isNudge: boolean,
-    entry: FailedEntry
+    entry: FailedEntry,
+    attempt = 1
   ) {
     const socket = getSocket()
     if (!socket) {
-      markMessageFailed(conversationId!, tempId)
-      addFailedEntry(entry)
+      if (attempt <= MAX_AUTO_RETRIES) {
+        scheduleRetry(attempt, tempId, content, replyToId, nudgeType, isNudge, entry)
+      } else {
+        markMessageFailed(conversationId!, tempId)
+        addFailedEntry(entry)
+      }
       return
     }
     socket.emit(
@@ -161,8 +178,10 @@ export function useMessages(conversationId: string | null) {
       },
       (ack: { success: boolean; message?: any; error?: string }) => {
         if (ack.success && ack.message) {
-          replaceMessage(conversationId!, tempId, ack.message)
+          replaceMessage(conversationId!, tempId, { ...ack.message, stableKey: ack.message.id })
           removeFailedEntry(conversationId!, tempId)
+        } else if (attempt < MAX_AUTO_RETRIES) {
+          scheduleRetry(attempt + 1, tempId, content, replyToId, nudgeType, isNudge, entry)
         } else {
           markMessageFailed(conversationId!, tempId)
           addFailedEntry(entry)
@@ -250,6 +269,14 @@ export function useMessages(conversationId: string | null) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
 
+  // Cancel pending retry timers on conversation change
+  useEffect(() => {
+    return () => {
+      Object.values(retryTimersRef.current).forEach(clearTimeout)
+      retryTimersRef.current = {}
+    }
+  }, [conversationId])
+
   const retryMessage = useCallback(
     (tempId: string) => {
       if (!conversationId) return
@@ -257,9 +284,15 @@ export function useMessages(conversationId: string | null) {
       const entry = (all[conversationId] || []).find((e) => e.tempId === tempId)
       if (!entry) return
 
+      // Cancel any pending auto-retry for this message
+      if (retryTimersRef.current[tempId]) {
+        clearTimeout(retryTimersRef.current[tempId])
+        delete retryTimersRef.current[tempId]
+      }
+
       setMessageSending(conversationId, tempId)
       const isNudge = entry.nudgeType !== undefined
-      emitSend(tempId, entry.content, entry.replyToId, entry.nudgeType, isNudge, entry)
+      emitSend(tempId, entry.content, entry.replyToId, entry.nudgeType, isNudge, entry, 1)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversationId]

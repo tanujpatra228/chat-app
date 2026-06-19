@@ -1,23 +1,32 @@
 const cloudinary = require("../config/cloudinary");
 
+const VIDEO_CHUNK_SIZE = 6 * 1024 * 1024; // 6 MB
+
 async function uploadMedia(fileBuffer, conversationId, resourceType = "image") {
   return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: `chat-app/${conversationId}`,
-        resource_type: resourceType,
-        transformation: [{ quality: "auto" }],
-      },
+    const options = {
+      folder: `chat-app/${conversationId}`,
+      resource_type: resourceType,
+      transformation: [{ quality: "auto" }],
+    };
+
+    // Chunked stream for video/audio — more resilient for large files
+    const uploadFn = resourceType === "video"
+      ? cloudinary.uploader.upload_chunked_stream.bind(cloudinary.uploader)
+      : cloudinary.uploader.upload_stream.bind(cloudinary.uploader);
+
+    const stream = uploadFn(
+      resourceType === "video" ? { ...options, chunk_size: VIDEO_CHUNK_SIZE } : options,
       (error, result) => {
         if (error) return reject(error);
         resolve({
           url: result.secure_url,
           publicId: result.public_id,
-          duration: result.duration ?? null, // seconds, populated by Cloudinary for video/audio
+          duration: result.duration ?? null,
         });
       }
     );
-    uploadStream.end(fileBuffer);
+    stream.end(fileBuffer);
   });
 }
 
