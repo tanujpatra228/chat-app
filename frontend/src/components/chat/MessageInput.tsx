@@ -123,8 +123,10 @@ export function MessageInput({
   }
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setContent(e.target.value)
+    const val = e.target.value
+    setContent(val)
     onTyping?.()
+    if (mode === 'send') saveDraft(conversationId, val)
   }
 
   async function handleMediaSelect(e: React.ChangeEvent<HTMLInputElement>) {
