@@ -20,7 +20,7 @@ interface MessageThreadProps {
 
 const defaultNudgeType = import.meta.env.VITE_DEFAULT_NUDGE_TYPE === "heart" ? "heart" : "point"
 const SCROLL_BOTTOM_THRESHOLD_PX = 120
-const LOAD_MORE_THRESHOLD_PX = 200
+const LOAD_MORE_THRESHOLD_PX = 400
 
 export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const { user } = useAuthStore()
