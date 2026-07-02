@@ -218,7 +218,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
               className="chat-hearts-bg py-2"
               onClick={handleDoubleTap}
             >
-              <MessageScrollerContent>
+              <MessageScrollerContent className="gap-0">
                 {/* Sentinel: IntersectionObserver fires loadMore when within 400px of viewport top */}
                 <div ref={sentinelRef} className="h-0 w-full" />
 
