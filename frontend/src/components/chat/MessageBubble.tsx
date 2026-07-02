@@ -6,6 +6,8 @@ import { ImageLightbox } from "./ImageLightbox"
 import { LinkPreview } from "./LinkPreview"
 import { linkifyText } from "@/utils/linkify"
 import { videoThumbnailUrl } from "@/utils/cloudinary"
+import { MessageFooter } from "@/components/ui/message"
+import { BubbleContent } from "@/components/ui/bubble"
 
 interface MessageBubbleProps {
   message: Message
@@ -72,10 +74,10 @@ export function MessageBubble({
 
   if (isNudge) {
     const nudgeEmoji = message.nudge_type === "heart" ? "♥️" : "👉"
-    const animationClass = message.nudge_type === "heart" 
+    const animationClass = message.nudge_type === "heart"
       ? (isMine ? "animate-heartbeat-reverse" : "animate-heartbeat")
       : (isMine ? "animate-nudge-reverse" : "animate-nudge")
-    
+
     return (
       <div className={`flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}>
         <div className="flex flex-col items-center">
@@ -100,12 +102,12 @@ export function MessageBubble({
 
   return (
     <div
-      id={`msg-${message.id}`}
-      className={`group flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}
+      data-align={isMine ? "end" : "start"}
+      className={`group/message flex ${isMine ? "justify-end" : "justify-start"} px-3 md:px-4`}
     >
       {/* Action buttons — left side for own messages (desktop hover) */}
       {isMine && (canReply || canEdit) && (
-        <div className="mr-1 hidden items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:flex group-hover:opacity-60">
+        <div className="mr-1 hidden items-center gap-0.5 self-center opacity-0 transition-opacity group-hover/message:flex group-hover/message:opacity-60">
           {canEdit && (
             <button onClick={() => onEdit?.(message)} className="hover:!opacity-100">
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -153,7 +155,7 @@ export function MessageBubble({
                 loading="lazy"
                 onLoad={() => {
                   requestAnimationFrame(() => {
-                    window.dispatchEvent(new Event('resize'))
+                    window.dispatchEvent(new Event("resize"))
                   })
                 }}
               />
@@ -184,12 +186,12 @@ export function MessageBubble({
           </div>
         ) : (
           /* Text message */
-          <div
-            className={`rounded-2xl px-4 py-2.5 text-sm md:px-4 shadow-md ${
+          <BubbleContent
+            className={`rounded-2xl px-4 py-2.5 shadow-md whitespace-pre-wrap ${
               isMine ? "bubble-mine" : "bubble-other"
             } ${message.status === "failed" ? "ring-1 ring-destructive/50" : ""}`}
           >
-            <p className="whitespace-pre-wrap break-words">
+            <p className="break-words text-sm">
               {linkifyText(message.content, isMine)}
             </p>
             {message.link_url && (
@@ -201,10 +203,10 @@ export function MessageBubble({
                 isMine={isMine}
               />
             )}
-          </div>
+          </BubbleContent>
         )}
 
-        {/* Mobile action menu (shown on long-press for own messages) */}
+        {/* Mobile action menu (long-press) */}
         {showActions && (
           <>
             <div
@@ -250,25 +252,22 @@ export function MessageBubble({
         )}
 
         {/* Timestamp + status */}
-        <div
-          className={`flex items-center gap-1 px-1 mt-0.5 ${isMine ? "justify-end" : "justify-start"}`}
-        >
+        <MessageFooter className={`gap-1 mt-0.5 px-1 text-[10px] ${isMine ? "justify-end" : "justify-start"}`}>
           {message.is_edited && (
-            <span className="text-muted-foreground text-[10px] italic">edited</span>
+            <span className="italic">edited</span>
           )}
-          <span className="text-muted-foreground text-[10px]">
-            {formatMessageTime(message.created_at)}
-          </span>
+          <span>{formatMessageTime(message.created_at)}</span>
           {isMine && message.status === "sending" && (
-            <Clock className="text-muted-foreground h-3 w-3" />
+            <Clock className="h-3 w-3" />
           )}
           {isMine && message.status === "sent" && !message.readByOther && (
-            <Check className="text-muted-foreground h-3 w-3" />
+            <Check className="h-3 w-3" />
           )}
           {isMine && message.readByOther && (
             <CheckCheck className="h-3 w-3 text-blue-500" />
           )}
-        </div>
+        </MessageFooter>
+
         {isMine && message.status === "failed" && message.tempId && (
           <div className="flex items-center gap-2 px-1 mt-0.5 justify-end">
             <button
@@ -288,11 +287,11 @@ export function MessageBubble({
         )}
       </div>
 
-      {/* Action buttons — right side for other's messages (desktop hover) */}
+      {/* Action button — right side for other's messages (desktop hover) */}
       {!isMine && canReply && (
         <button
           onClick={() => onReply?.(message)}
-          className="ml-1 hidden self-center opacity-0 transition-opacity group-hover:block group-hover:opacity-60 hover:!opacity-100"
+          className="ml-1 hidden self-center opacity-0 transition-opacity group-hover/message:block group-hover/message:opacity-60 hover:!opacity-100"
         >
           <Reply className="h-4 w-4 text-muted-foreground" />
         </button>
