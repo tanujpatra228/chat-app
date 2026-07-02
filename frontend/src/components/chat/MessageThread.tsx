@@ -56,6 +56,14 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [viewportEl, setViewportEl] = useState<HTMLDivElement | null>(null)
 
+  // Capture unread count synchronously before decrementUnread clears it
+  const capturedConvIdRef = useRef<string | null>(null)
+  const initialUnreadCountRef = useRef(0)
+  if (capturedConvIdRef.current !== conversation.id) {
+    capturedConvIdRef.current = conversation.id
+    initialUnreadCountRef.current = conversation.unread_count ?? 0
+  }
+
   const toggleNudgeType = useCallback(() => {
     setNudgeType(prev => prev === "point" ? "heart" : "point")
   }, [])
@@ -211,7 +219,7 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
           hasBackground={!!bgUrl}
         />
 
-        <MessageScrollerProvider autoScroll>
+        <MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
           <MessageScroller className="flex-1 min-h-0">
             <MessageScrollerViewport
               preserveScrollOnPrepend
@@ -243,6 +251,10 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
                     new Date(message.created_at).toDateString() !==
                       new Date(prevMessage.created_at).toDateString()
 
+                  const unreadCount = initialUnreadCountRef.current
+                  const unreadStartIndex = Math.max(0, messages.length - unreadCount)
+                  const isFirstUnread = unreadCount > 0 && i === unreadStartIndex && !message.tempId
+
                   return (
                     <Fragment key={message.stableKey}>
                       {showDateSep && (
@@ -252,9 +264,17 @@ export function MessageThread({ conversation, onBack }: MessageThreadProps) {
                           </MarkerContent>
                         </Marker>
                       )}
+                      {isFirstUnread && (
+                        <Marker variant="separator" className="px-3 py-2 md:px-4">
+                          <MarkerContent className="text-[11px] font-medium text-primary">
+                            {unreadCount} unread message{unreadCount !== 1 ? "s" : ""}
+                          </MarkerContent>
+                        </Marker>
+                      )}
                       <MessageScrollerItem
                         id={`msg-${message.id}`}
                         messageId={message.stableKey}
+                        scrollAnchor={isFirstUnread}
                         className="pb-1.5"
                       >
                         <MessageBubble
