@@ -17,6 +17,13 @@ export function formatMessageTime(dateString: string): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
 }
 
+export function formatTimeOnly(dateString: string): string {
+  return new Date(dateString).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
 export function formatLastSeen(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()

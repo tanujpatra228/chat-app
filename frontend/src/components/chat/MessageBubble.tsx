@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react"
-import { formatMessageTime } from "@/utils/formatDate"
+import { formatMessageTime, formatTimeOnly } from "@/utils/formatDate"
 import type { Message } from "@/lib/types"
 import { Clock, Check, CheckCheck, Reply, Pencil, Copy } from "lucide-react"
 import { ImageLightbox } from "./ImageLightbox"
@@ -256,7 +256,7 @@ export function MessageBubble({
           {message.is_edited && (
             <span className="italic">edited</span>
           )}
-          <span>{formatMessageTime(message.created_at)}</span>
+          <span>{formatTimeOnly(message.created_at)}</span>
           {isMine && message.status === "sending" && (
             <Clock className="h-3 w-3" />
           )}
